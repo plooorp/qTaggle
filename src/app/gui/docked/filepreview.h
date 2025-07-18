@@ -1,10 +1,10 @@
 #pragma once
 
-#include <QWidget>
-#include <QPixmap>
 #include <QLabel>
+#include <QPixmap>
 #include <QPointer>
 #include <QResizeEvent>
+#include <QWidget>
 #include "app/gui/filelist.h"
 
 class FilePreview : public QWidget
@@ -13,12 +13,15 @@ class FilePreview : public QWidget
 
 public:
 	explicit FilePreview(QWidget* parent = nullptr);
-	bool setFileList(FileList* fileList);
+	void setFileList(FileList* fileList);
+
+private slots:
+	void updatePreview();
 
 private:
 	QPointer<FileList> m_fileList;
 	QLabel* m_label;
 	QPixmap m_pixmap;
-	void updatePreview();
 	void resizeEvent(QResizeEvent* event) override;
+	void clear();
 };
