@@ -133,7 +133,7 @@
    </attribute>
    <widget class="FilePreview" name="filePreview"/>
   </widget>
-  <widget class="QDockWidget" name="dockWidget_3">
+  <widget class="QDockWidget" name="properties_dockWidget">
    <property name="windowTitle">
     <string>Properties</string>
    </property>

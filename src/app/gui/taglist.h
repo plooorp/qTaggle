@@ -23,6 +23,9 @@ public:
 	void editSelected();
 	void deleteSelected();
 
+signals:
+	void selectionChanged();
+
 private slots:
 	void actionCreate_triggered();
 	void actionDelete_triggered();

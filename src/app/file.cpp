@@ -338,4 +338,10 @@ QList<FileTag> File::tags() const
 	return m_tags;
 }
 
+QString File::stateString(State state)
+{
+	return m_stateString[state];
+}
+
 QMap<int64_t, QWeakPointer<File>> File::m_instances;
+QStringList File::m_stateString = { "Ok", "File missing", "Checksum mismatch" };

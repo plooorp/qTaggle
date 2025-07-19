@@ -33,6 +33,8 @@ set(PROJECT_SOURCES
     gui/dialog/settingsdialog.ui
     gui/docked/filepreview.cpp
     gui/docked/filepreview.h
+    gui/docked/properties.cpp
+    gui/docked/properties.h
     gui/helper/plaintextlistedit.cpp
     gui/helper/plaintextlistedit.h
     gui/helper/tagselect.cpp
@@ -47,12 +49,18 @@ set(PROJECT_SOURCES
     gui/filelist.cpp
     gui/filelist.h
     gui/filelist.ui
+    gui/fileproperties.cpp
+    gui/fileproperties.h
+    gui/fileproperties.ui
     gui/mainwindow.cpp
     gui/mainwindow.h
     gui/mainwindow.ui
     gui/taglist.cpp
     gui/taglist.h
     gui/taglist.ui
+    gui/tagproperties.cpp
+    gui/tagproperties.h
+    gui/tagproperties.ui
     database.cpp
     database.h
     #database.test.cpp

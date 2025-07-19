@@ -15,6 +15,10 @@ class MainWindow final : public QMainWindow
 public:
 	MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
+	enum Tab { File, Tag };
+
+signals:
+	void currentTabChanged(Tab index);
 
 private slots:
 	void actionAddFile_triggered();
@@ -32,11 +36,6 @@ private slots:
 private:
 	Ui::MainWindow m_ui;
 	QPointer<SettingsDialog> m_settingsDialog;
-	enum Tab
-	{
-		Files = 0,
-		Tags = 1
-	};
 	void closeEvent(QCloseEvent* event) override;
 	void readSettings();
 	void writeSettings();

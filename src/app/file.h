@@ -26,6 +26,7 @@ public:
 		FileMissing,
 		ChecksumMismatch
 	};
+	static QString stateString(State state);
 	DBResult addTag(const QSharedPointer<Tag>& tag);
 	DBResult removeTag(const QSharedPointer<Tag>& tag);
 	int64_t id() const;
@@ -49,6 +50,7 @@ private:
 	File(sqlite3_stmt* stmt);
 	static const int SHA1_DIGEST_SIZE = 20;
 	static QMap<int64_t, QWeakPointer<File>> m_instances;
+	static QStringList m_stateString;
 	static QByteArray sha1Digest(const QString& path);
 	void fetchTags();
 	bool setState(File::State state);

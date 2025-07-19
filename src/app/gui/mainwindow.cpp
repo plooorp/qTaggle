@@ -11,6 +11,7 @@
 #include "app/gui/dialog/edittagdialog.h"
 #include "app/gui/dialog/newtagdialog.h"
 #include "app/gui/dialog/newfiledialog.h"
+#include "app/gui/docked/properties.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -18,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent)
 	m_ui.setupUi(this);
 
 	((FilePreview*)(m_ui.filePreview_dockWidget->widget()))->setFileList(m_ui.tabFiles);
+
+	m_ui.properties_dockWidget->setWidget(new Properties(this, m_ui.tabFiles, m_ui.tabTags, this));
 
 	// file
 	connect(m_ui.actionAddFile, &QAction::triggered, this, &MainWindow::actionAddFile_triggered);
@@ -36,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 	connect(db, &Database::opened, this, &MainWindow::unlockUi);
 	connect(db, &Database::closed, this, &MainWindow::lockUi);
+
+	connect(m_ui.tabWidget, &QTabWidget::currentChanged, this, [this]() -> void {emit currentTabChanged((Tab)m_ui.tabWidget->currentIndex()); });
 
 	readSettings();
 	updateRecentlyOpened();
@@ -78,10 +83,10 @@ void MainWindow::actionEditSelected_triggered()
 {
 	switch (m_ui.tabWidget->currentIndex())
 	{
-	case Tab::Files:
+	case Tab::File:
 		m_ui.tabFiles->editSelected();
 		break;
-	case Tab::Tags:
+	case Tab::Tag:
 		m_ui.tabTags->editSelected();
 		break;
 	}
@@ -91,10 +96,10 @@ void MainWindow::actionDeleteSelected_triggered()
 {
 	switch (m_ui.tabWidget->currentIndex())
 	{
-	case Tab::Files:
+	case Tab::File:
 		m_ui.tabFiles->deleteSelected();
 		break;
-	case Tab::Tags:
+	case Tab::Tag:
 		m_ui.tabTags->deleteSelected();
 		break;
 	}

@@ -31,6 +31,7 @@ TagList::TagList(QWidget* parent)
 	m_ui->treeView->setModel(m_model);
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &TagList::editSelected);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &TagList::showContextMenu);
+	connect(m_ui->treeView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]()-> void {emit selectionChanged(); });
 }
 
 TagList::~TagList()
