@@ -2,7 +2,7 @@
 
 #include "ui_mainwindow.h"
 
-#include <QtWidgets/QMainWindow>
+#include <QMainWindow>
 #include <QPointer>
 #include <QCloseEvent>
 

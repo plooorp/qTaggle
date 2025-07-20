@@ -18,14 +18,14 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
-      <widget class="FileList" name="tabFiles">
+      <widget class="FileList" name="fileList">
        <attribute name="title">
         <string>Files</string>
        </attribute>
       </widget>
-      <widget class="TagList" name="tabTags">
+      <widget class="TagList" name="tagList">
        <attribute name="title">
         <string>Tags</string>
        </attribute>
@@ -124,16 +124,16 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents"/>
   </widget>
-  <widget class="QDockWidget" name="filePreview_dockWidget">
+  <widget class="QDockWidget" name="filePreviewDock">
    <property name="windowTitle">
     <string>Preview</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="FilePreview" name="filePreview"/>
+   <widget class="QWidget" name="dockWidgetContents_2"/>
   </widget>
-  <widget class="QDockWidget" name="properties_dockWidget">
+  <widget class="QDockWidget" name="propertiesDock">
    <property name="windowTitle">
     <string>Properties</string>
    </property>
@@ -269,12 +269,6 @@
    <class>FileList</class>
    <extends>QWidget</extends>
    <header>app/gui/filelist.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>FilePreview</class>
-   <extends>QWidget</extends>
-   <header>app/gui/docked/filepreview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

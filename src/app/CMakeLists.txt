@@ -1,10 +1,3 @@
-# set(SQLITE3_SOURCE_DIR ${CMAKE_SOURCE_DIR}/lib/sqlite3)
-# add_library(sqlite3 STATIC
-#     ${SQLITE3_SOURCE_DIR}/sqlite3.h
-#     ${SQLITE3_SOURCE_DIR}/sqlite3.c
-# )
-# target_include_directories(sqlite3 SYSTEM PUBLIC ${SQLITE3_SOURCE_DIR})
-
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR}
     COMPONENTS

@@ -3,10 +3,13 @@
 #include <QVBoxLayout>
 #include <QImageReader>
 
-FilePreview::FilePreview(QWidget* parent)
+FilePreview::FilePreview(FileList* fileList, QWidget* parent)
 	: QWidget(parent)
-	, m_label(new QLabel(this))
+	, m_fileList(fileList)
 {
+	connect(m_fileList, &FileList::selectionChanged, this, &FilePreview::updatePreview);
+
+	m_label = new QLabel(this);
 	m_label->setText(tr("No preview available"));
 	m_label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 	//m_label->setScaledContents(true);
@@ -41,15 +44,6 @@ void FilePreview::clear()
 {
 	m_label->setPixmap(QPixmap());
 	m_label->setText(tr("No preview available"));
-}
-
-void FilePreview::setFileList(FileList* fileList)
-{
-	if (m_fileList)
-		disconnect(m_fileList, &FileList::selectionChanged, this, &FilePreview::updatePreview);
-	m_fileList = fileList;
-	if (m_fileList)
-		connect(m_fileList, &FileList::selectionChanged, this, &FilePreview::updatePreview);
 }
 
 void FilePreview::resizeEvent(QResizeEvent* event)

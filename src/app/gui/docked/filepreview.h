@@ -12,8 +12,7 @@ class FilePreview : public QWidget
 	Q_OBJECT
 
 public:
-	explicit FilePreview(QWidget* parent = nullptr);
-	void setFileList(FileList* fileList);
+	explicit FilePreview(FileList* fileList, QWidget* parent = nullptr);
 
 private slots:
 	void updatePreview();
