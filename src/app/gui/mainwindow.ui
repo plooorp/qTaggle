@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="FileList" name="fileList">
        <attribute name="title">
@@ -67,7 +67,7 @@
      <string>Edit</string>
     </property>
     <addaction name="actionEditSelected"/>
-    <addaction name="actionCheckFile"/>
+    <addaction name="actionCheckSelected"/>
     <addaction name="actionDeleteSelected"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -108,7 +108,7 @@
    <addaction name="actionCreateTag"/>
    <addaction name="separator"/>
    <addaction name="actionEditSelected"/>
-   <addaction name="actionCheckFile"/>
+   <addaction name="actionCheckSelected"/>
    <addaction name="actionDeleteSelected"/>
    <addaction name="separator"/>
    <addaction name="actionNewDatabase"/>
@@ -232,7 +232,7 @@
     <enum>QAction::MenuRole::AboutQtRole</enum>
    </property>
   </action>
-  <action name="actionCheckFile">
+  <action name="actionCheckSelected">
    <property name="enabled">
     <bool>false</bool>
    </property>

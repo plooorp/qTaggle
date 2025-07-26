@@ -47,7 +47,7 @@
          <item>
           <widget class="QGroupBox" name="groupBox_2">
            <property name="title">
-            <string>Select file</string>
+            <string>Select file(s)</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout">
             <item>
@@ -70,6 +70,9 @@
                </item>
                <item>
                 <widget class="QPushButton" name="chooseFile_pushButton">
+                 <property name="toolTip">
+                  <string>Choose file(s)</string>
+                 </property>
                  <property name="text">
                   <string/>
                  </property>
@@ -80,6 +83,9 @@
                </item>
                <item>
                 <widget class="QPushButton" name="chooseDir_pushButton">
+                 <property name="toolTip">
+                  <string>Choose directory</string>
+                 </property>
                  <property name="text">
                   <string/>
                  </property>
@@ -154,16 +160,12 @@
                <item row="0" column="0">
                 <widget class="QLabel" name="label">
                  <property name="text">
-                  <string>Name</string>
+                  <string>Alias</string>
                  </property>
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QLineEdit" name="name_lineEdit">
-                 <property name="toolTip">
-                  <string>Custom name for the file. If blank, filename is used.</string>
-                 </property>
-                </widget>
+                <widget class="QLineEdit" name="name_lineEdit"/>
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_4">

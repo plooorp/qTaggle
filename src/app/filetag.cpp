@@ -9,6 +9,7 @@ QSharedPointer<Tag> FileTag::tag() const
 {
 	return m_tag;
 }
+
 QDateTime FileTag::created() const
 {
 	return m_created;

@@ -24,6 +24,6 @@ private slots:
 private:
 	Ui::EditTagDialog* m_ui;
 	QList<QSharedPointer<Tag>> m_tags;
-	int updateTag();
-	int updateSingleTag();
+	void updateTag();
+	void updateSingleTag();
 };

@@ -3,7 +3,8 @@
 #include <QUrl>
 
 Tag::Tag(sqlite3_stmt* stmt)
-	: m_id(sqlite3_column_int64(stmt, 0))
+	: QObject(nullptr)
+	, m_id(sqlite3_column_int64(stmt, 0))
 	, m_name(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 1), sqlite3_column_bytes(stmt, 1)))
 	, m_description(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 2), sqlite3_column_bytes(stmt, 2)))
 	, m_urls(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 3), sqlite3_column_bytes(stmt, 3)).split(';'))
@@ -38,6 +39,7 @@ void Tag::fetch()
 		m_modified = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 6));
 	}
 	sqlite3_finalize(stmt);
+	emit updated();
 }
 
 QSharedPointer<Tag> Tag::create(const QString& name, const QString& description, const QStringList& urls)
@@ -170,71 +172,6 @@ QList<QSharedPointer<Tag>> Tag::fromQuery(const QString& query)
 	return tags;
 }
 
-//int Tag::update(QSharedPointer<Tag>& tag, const QString& name, const QString& description, const QStringList& urls)
-//{ }
-
-//int Tag::update(const QList<QSharedPointer<Tag>>& tags, const QString& name, const QString& description, const QStringList& urls)
-//{
-//	QString urls_str;
-//	if (urls.size() == 0)
-//		urls_str = "";
-//	else
-//	{
-//		QStringList urls_cpy;
-//		for (QString url : urls)
-//			urls_cpy.append(QUrl(url, QUrl::TolerantMode).toString());
-//		urls_str = urls_cpy.join(';');
-//	}
-//	
-//	int rc = 0;
-//	db_begin();
-//	sqlite3_stmt* stmt;
-//	std::string sql;
-//	for (QSharedPointer<Tag> tag : tags)
-//	{
-//		sql = "UPDATE tag SET name = ?, description = ?, urls = ? WHERE id = ?;";
-//		sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-//		QByteArray name_ba = name.toUtf8();
-//		QByteArray description_ba = description.toUtf8();
-//		QByteArray urls_ba = urls_str.toUtf8();
-//		sqlite3_bind_text(stmt, 1, name_ba.constData(), -1, SQLITE_STATIC);
-//		sqlite3_bind_text(stmt, 2, description_ba.constData(), -1, SQLITE_STATIC);
-//		sqlite3_bind_text(stmt, 3, urls_ba.constData(), -1, SQLITE_STATIC);
-//		sqlite3_bind_int64(stmt, 4, tag->m_id);
-//		int rc = sqlite3_step(stmt);
-//		sqlite3_finalize(stmt);
-//		if (rc != SQLITE_DONE)
-//		{
-//			db_rollback();
-//			qCritical() << "Tag update failed:" << sqlite3_errstr(rc);
-//			return rc;
-//		}
-//	}
-//	db_commit();
-//	for (QSharedPointer<Tag> tag : tags)
-//		tag->fetch();
-//	return rc;
-//}
-
-//void Tag::update(QString& name, QString& description, QStringList& urls)
-//{
-//	update(QList{ QSharedPointer<Tag>(this) }, QString & name, QString & description, QStringList & urls);
-//}
-
-//void Tag::cleanup()
-//{
-//    for (QWeakPointer<Tag> tag_ptr : m_instancesByID.values())
-//    {
-//        if (QSharedPointer<Tag> tag = tag_ptr.lock() && tag.)
-//        {
-//
-//            delete tag.get();
-//        }
-//        m_instancesByID.remove(tag.get()->id());
-//        m_instancesByName.remove(tag.get()->name());
-//    }
-//}
-
 int Tag::remove(QList<QSharedPointer<Tag>> tags)
 {
 	if (!db->isOpen())
@@ -258,6 +195,76 @@ int Tag::remove(QList<QSharedPointer<Tag>> tags)
 	}
 	db->commit();
 	return rc;
+}
+
+DBResult Tag::setName(const QString& name)
+{
+	QString name_norm = normalizeName(name);
+	if (name.isEmpty())
+		return DBResult(DBResult::ValueError, "Name cannot be empty");
+
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "UPDATE tag SET name = ? WHERE id = ?;", -1, &stmt, nullptr);
+	QByteArray name_bytes = name_norm.toUtf8();
+	sqlite3_bind_text(stmt, 1, name_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, m_id);
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
+		return DBResult(rc);
+	if (db->inTransaction())
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
+	fetch();
+	return DBResult();
+}
+
+DBResult Tag::setDescription(const QString& description)
+{
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "UPDATE tag SET description = ? WHERE id = ?;", -1, &stmt, nullptr);
+	QByteArray description_bytes = description.trimmed().toUtf8();
+	sqlite3_bind_text(stmt, 1, description_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, m_id);
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
+		return DBResult(rc);
+	if (db->inTransaction())
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
+	fetch();
+	return DBResult();
+}
+
+DBResult Tag::setURLs(const QStringList& urls)
+{
+	QString urls_str;
+	if (urls.isEmpty())
+		urls_str = "";
+	else
+	{
+		QStringList urls_cpy;
+		for (QString url_str : urls)
+		{
+			QUrl url(url_str, QUrl::TolerantMode);
+			if (!url.isEmpty())
+				urls_cpy.append(url.toEncoded());
+		}
+		urls_str = urls_cpy.join(';');
+	}
+
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "UPDATE tag SET urls = ? WHERE id = ?;", -1, &stmt, nullptr);
+	QByteArray urls_str_bytes = urls_str.toUtf8();
+	sqlite3_bind_text(stmt, 1, urls_str_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, m_id);
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
+		return DBResult(rc);
+	if (db->inTransaction())
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
+	fetch();
+	return DBResult();
 }
 
 int64_t Tag::id() const
@@ -302,17 +309,5 @@ QString Tag::normalizeName(const QString& name)
 		.toLower()
 		.replace(' ', '_');
 }
-
-//std::ostream& operator<<(std::ostream& os, const Tag& tag)
-//{
-//    QByteArray ba = tag.m_name.toUtf8();
-//    os << ba.constData();
-//    return os;
-//}
-
-//bool operator==(const Tag& l, const Tag& r)
-//{
-//	return l.id() == r.id();
-//}
 
 QMap<int64_t, QWeakPointer<Tag>> Tag::m_instances;

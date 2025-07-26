@@ -1,60 +1,10 @@
 #pragma once
 
-#include <exception>
 #include <QObject>
-#include <QString>
+#include <QSharedPointer>
 #include "sqlite3.h"
 
 #define db Database::instance()
-
-class Database final : public QObject
-{
-	Q_OBJECT
-
-public:
-	static Database* instance();
-	~Database();
-	sqlite3* con();
-	bool open(const QString& path);
-	// clearLastOpened should be false only on application close
-	bool close(bool clearLastOpened = true);
-	bool isOpen();
-	int begin();
-	int rollback();
-	int commit();
-	QString path();
-	QString configPath();
-
-signals:
-	void opened(const QString& path);
-	void closed();
-
-	void fileCreated();
-	void fileDeleted();
-	void fileUpdated();
-
-private:
-	Database();
-	static Database* m_instance;
-	QString m_path;
-	sqlite3* m_con;
-	int updateSchema_0to1();
-};
-
-//class SQLiteException final : public std::exception
-//{
-//public:
-//	SQLiteException(int rc)
-//		: std::exception()
-//		, m_rc(rc)
-//	{}
-//	const char* what() const noexcept override
-//	{
-//		return sqlite3_errstr(m_rc);
-//	}
-//private:
-//	int m_rc;
-//};
 
 struct DBResult
 {
@@ -69,7 +19,7 @@ public:
 	};
 	DBResult()
 		: code(Ok)
-		, msg("Ok")
+		, msg(m_code_str[Ok])
 		, sqlite_code(-1)
 	{}
 	DBResult(Code _code, QString _msg)
@@ -89,4 +39,49 @@ public:
 	Code code;
 	int sqlite_code;
 	QString msg;
+private:
+	static QStringList m_code_str;
+};
+
+class Record
+{
+public:
+	virtual ~Record() = default;
+	virtual void fetch() = 0;
+};
+
+class Database final : public QObject
+{
+	Q_OBJECT
+
+public:
+	static Database* instance();
+	~Database();
+	sqlite3* con();
+	DBResult open(const QString& path);
+	// clearLastOpened should be false only on application close
+	DBResult close(bool clearLastOpened = true);
+	bool isOpen();
+	DBResult begin();
+	DBResult commit();
+	DBResult rollback();
+	bool inTransaction() const;
+	QString path() const;
+	QString configPath() const;
+	void addRecordToRollbackFetch(const QSharedPointer<Record>& record);
+
+signals:
+	void opened(const QString& path);
+	void closed();
+	void committed();
+	void rollbacked();
+
+private:
+	Database();
+	static Database* m_instance;
+	QString m_path;
+	sqlite3* m_con;
+	bool m_inTransaction;
+	QList<QSharedPointer<Record>> m_fetchOnRollback;
+	int updateSchema_0to1();
 };

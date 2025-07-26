@@ -24,14 +24,12 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 		case Column::Name: return file->name();
 		case Column::Path: return file->path();
 		case Column::Directory: return file->dir();
+		case Column::State: return File::stateString(file->state());
 		case Column::Sha1digest: return QString(file->sha1().toHex());
-		
+		case Column::Comment: return file->comment();
 		case Column::Source: return file->source();
-		
-		case Column::Created:
-			return QLocale().toString(file->created(), QLocale::ShortFormat);
-		case Column::Modified:
-			return QLocale().toString(file->modified(), QLocale::ShortFormat);
+		case Column::Created: return QLocale().toString(file->created(), QLocale::ShortFormat);
+		case Column::Modified: return QLocale().toString(file->modified(), QLocale::ShortFormat);
 		}
 	}
 	if (role == Qt::ToolTipRole)
@@ -44,6 +42,17 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 			return QLocale().toString(file->modified(), QLocale::LongFormat);
 		}
 	}
+	if (role == Qt::TextAlignmentRole)
+	{
+		switch (index.column())
+		{
+		case Column::ID: return Qt::AlignRight;
+		}
+	}
+	//if (role == Qt::DecorationRole)
+	//{
+	//	return QIcon::fromTheme(QIcon::ThemeIcon::);
+	//}
 
 	return QVariant();
 }

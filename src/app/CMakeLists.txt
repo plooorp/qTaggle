@@ -35,8 +35,6 @@ set(PROJECT_SOURCES
     gui/helper/tagselect.ui
     gui/model/filetablemodel.cpp
     gui/model/filetablemodel.h
-    gui/model/taglistmodel.cpp
-    gui/model/taglistmodel.h
     gui/model/tagtablemodel.cpp
     gui/model/tagtablemodel.h
     gui/filelist.cpp

@@ -22,7 +22,7 @@ private:
 	QList<QSharedPointer<File>> m_files;
 	enum Column
 	{
-		Name,
+		Name = 0,
 		ID,
 		Path,
 		Directory,

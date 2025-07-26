@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QApplication>
+#include <QMessageBox>
 
 #include "app/database.h"
 //#include "app/database.test.h"
@@ -30,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(m_ui.actionExit, &QAction::triggered, this, &QMainWindow::close);
 	// edit
 	connect(m_ui.actionEditSelected, &QAction::triggered, this, &MainWindow::actionEditSelected_triggered);
+	connect(m_ui.actionCheckSelected, &QAction::triggered, this, &MainWindow::actionCheckSelected_triggered);
 	connect(m_ui.actionDeleteSelected, &QAction::triggered, this, &MainWindow::actionDeleteSelected_triggered);
 	// tools
 	connect(m_ui.actionOptions, &QAction::triggered, this, &MainWindow::actionOptions_triggered);
@@ -91,6 +93,12 @@ void MainWindow::actionEditSelected_triggered()
 	}
 }
 
+void MainWindow::actionCheckSelected_triggered()
+{
+	if (m_ui.tabWidget->currentIndex() == Tab::File)
+		m_ui.fileList->checkSelected();
+}
+
 void MainWindow::actionDeleteSelected_triggered()
 {
 	switch (m_ui.tabWidget->currentIndex())
@@ -142,7 +150,7 @@ void MainWindow::lockUi()
 	m_ui.actionAddFile->setEnabled(false);
 	m_ui.actionCreateTag->setEnabled(false);
 	m_ui.actionEditSelected->setEnabled(false);
-	m_ui.actionCheckFile->setEnabled(false);
+	m_ui.actionCheckSelected->setEnabled(false);
 	m_ui.actionDeleteSelected->setEnabled(false);
 	m_ui.actionCloseDatabase->setEnabled(false);
 }
@@ -153,7 +161,7 @@ void MainWindow::unlockUi()
 	m_ui.actionAddFile->setEnabled(true);
 	m_ui.actionCreateTag->setEnabled(true);
 	m_ui.actionEditSelected->setEnabled(true);
-	m_ui.actionCheckFile->setEnabled(true);
+	m_ui.actionCheckSelected->setEnabled(true);
 	m_ui.actionDeleteSelected->setEnabled(true);
 	m_ui.actionCloseDatabase->setEnabled(true);
 }
@@ -212,6 +220,8 @@ void MainWindow::readSettings()
 	const QByteArray state = settings.value("GUI/MainWindow/state", QByteArray()).toByteArray();
 	if (!state.isEmpty())
 		restoreState(state);
+	int tabIndex = settings.value("GUI/MainWindow/currentIndex", 0).toInt();
+	m_ui.tabWidget->setCurrentIndex(tabIndex);
 
 	const QString lastOpened = settings.value("lastOpened", QString()).toString();
 	if (QFileInfo::exists(lastOpened) && !lastOpened.isEmpty())
@@ -223,15 +233,17 @@ void MainWindow::writeSettings()
 	QSettings settings;
 	settings.setValue("GUI/MainWindow/geometry", saveGeometry());
 	settings.setValue("GUI/MainWindow/state", saveState());
+	settings.setValue("GUI/MainWindow/currentIndex", m_ui.tabWidget->currentIndex());
 }
 
 void MainWindow::openDatabase(const QString& path)
 {
-	if (db->open(path))
+	if (DBResult error = db->open(path))
+		QMessageBox::warning(this, qApp->applicationName()
+			, tr("Failed to open database: ") + error.msg);
+	else
 	{
 		setWindowTitle(qApp->applicationName() + " - " + path);
 		m_ui.statusbar->showMessage(tr("Database opened"), 2000);
-	}
-	else
-		m_ui.statusbar->showMessage(tr("Failed to open database"), 5000);
+	}	
 }

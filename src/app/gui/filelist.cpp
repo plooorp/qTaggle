@@ -20,6 +20,7 @@ FileList::FileList(QWidget* parent)
 	// context menu actions
 	connect(m_ui->actionAdd, &QAction::triggered, this, &FileList::actionAdd_triggered);
 	connect(m_ui->actionEdit, &QAction::triggered, this, &FileList::actionEdit_triggered);
+	connect(m_ui->actionCheck, &QAction::triggered, this, &FileList::actionCheck_triggered);
 	connect(m_ui->actionDelete, &QAction::triggered, this, &FileList::actionDelete_triggered);
 
 	connect(db, &Database::opened, this, &FileList::populate);
@@ -60,6 +61,12 @@ void FileList::editSelected()
 	}
 }
 
+void FileList::checkSelected()
+{
+	for (const QSharedPointer<File>& file : selectedFiles())
+		file->check();
+}
+
 void FileList::deleteSelected()
 {
 	QList<QSharedPointer<File>> files = selectedFiles();
@@ -98,6 +105,11 @@ void FileList::actionDelete_triggered()
 	deleteSelected();
 }
 
+void FileList::actionCheck_triggered()
+{
+	checkSelected();
+}
+
 void FileList::showContextMenu(const QPoint& pos)
 {
 	if (!m_ui->treeView->indexAt(pos).isValid())
@@ -108,6 +120,7 @@ void FileList::showContextMenu(const QPoint& pos)
 	if (!m_ui->treeView->selectionModel()->selectedRows().isEmpty())
 	{
 		menu->addAction(m_ui->actionEdit);
+		menu->addAction(m_ui->actionCheck);
 		menu->addAction(m_ui->actionDelete);
 		menu->addSeparator();
 		menu->addAction(m_ui->actionAdd);

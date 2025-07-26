@@ -1,8 +1,8 @@
 CREATE TABLE file(
 	id          INTEGER PRIMARY KEY AUTOINCREMENT,
-	name        TEXT    NOT NULL,
 	path        TEXT    NOT NULL UNIQUE,
 	dir         TEXT    NOT NULL,
+	alias       TEXT    NOT NULL,
 	state       INTEGER NOT NULL,
 	comment     TEXT    NOT NULL,
 	source      TEXT    NOT NULL,
@@ -51,7 +51,7 @@ BEGIN
 END;
 
 CREATE TRIGGER update_file_modified
-AFTER UPDATE OF name, path, dir, comment, source, sha1digest ON file
+AFTER UPDATE OF path, dir, alias, comment, source, sha1digest ON file
 BEGIN
 	UPDATE file
 	SET    modified = unixepoch()

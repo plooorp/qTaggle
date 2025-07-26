@@ -1,7 +1,9 @@
 #include "editfiledialog.h"
 #include "ui_editfiledialog.h"
 
+#include <QFileInfo>
 #include <QMessageBox>
+#include <QFileDialog>
 
 EditFileDialog::EditFileDialog(QSharedPointer<File> file, QWidget* parent, Qt::WindowFlags f)
 	: QDialog(parent, f)
@@ -13,8 +15,13 @@ EditFileDialog::EditFileDialog(QSharedPointer<File> file, QWidget* parent, Qt::W
 	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &EditFileDialog::accept);
 	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &EditFileDialog::reject);
 
-	m_ui->lineEdit_name->setText(m_file->name());
-	m_ui->lineEdit_path->setText(m_file->path());
+	connect(m_ui->btnChooseFile, &QPushButton::pressed, this, &EditFileDialog::openFileDialog_dir);
+	connect(m_ui->btnChooseDir, &QPushButton::pressed, this, &EditFileDialog::openFileDialog_dir);
+
+
+	m_ui->lineEdit_alias->setText(m_file->alias());
+	m_ui->lineEdit_fileName->setText(QFileInfo(file->path()).fileName());
+	m_ui->lineEdit_dir->setText(file->dir());
 	m_ui->lineEdit_source->setText(m_file->source());
 	m_ui->plainTextEdit_comment->setPlainText(m_file->comment());
 	
@@ -39,11 +46,16 @@ void EditFileDialog::accept()
 	DBResult error;
 	db->begin();
 
-	if (m_ui->lineEdit_name->text() != m_file->name())
-		if (error = m_file->setName(m_ui->lineEdit_name->text()))
+	QFileInfo newPath(QDir(m_ui->lineEdit_dir->text()), m_ui->lineEdit_fileName->text());
+
+	if (newPath.absoluteFilePath() != m_file->path())
+	{
+		if (error = m_file->setPath(newPath.absoluteFilePath()))
 			goto error;
-	if (m_ui->lineEdit_path->text() != m_file->path())
-		if (error = m_file->setPath(m_ui->lineEdit_path->text()))
+		m_file->check();
+	}
+	if (m_ui->lineEdit_alias->text() != m_file->alias())
+		if (error = m_file->setAlias(m_ui->lineEdit_alias->text()))
 			goto error;
 	if (m_ui->plainTextEdit_comment->toPlainText() != m_file->comment())
 		if (error = m_file->setComment(m_ui->plainTextEdit_comment->toPlainText()))
@@ -62,7 +74,6 @@ void EditFileDialog::accept()
 				goto error;
 
 	db->commit();
-	m_file->fetch();
 	QDialog::accept();
 	return;
 
@@ -82,4 +93,29 @@ void EditFileDialog::keyPressEvent(QKeyEvent* evt)
 	if (evt->key() == Qt::Key_Enter || evt->key() == Qt::Key_Return)
 		return;
 	QDialog::keyPressEvent(evt);
+}
+
+void EditFileDialog::openFileDialog_file()
+{
+	QFileDialog dialog(this);
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	dialog.setFileMode(QFileDialog::ExistingFile);
+	if (dialog.exec())
+	{
+		QFileInfo fileInfo(dialog.selectedFiles().first());
+		m_ui->lineEdit_fileName->setText(fileInfo.fileName());
+		m_ui->lineEdit_dir->setText(fileInfo.dir().path());
+	}
+}
+
+void EditFileDialog::openFileDialog_dir()
+{
+	QFileDialog dialog(this);
+	dialog.setAcceptMode(QFileDialog::AcceptOpen);
+	dialog.setFileMode(QFileDialog::Directory);
+	if (dialog.exec())
+	{
+		QString dir(dialog.selectedFiles().first());
+		m_ui->lineEdit_dir->setText(dir);
+	}
 }

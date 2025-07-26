@@ -69,7 +69,7 @@ void NewFileDialog::create(const QDir& directory, bool recursive, bool ignoreHid
 			create(QDir(entry.absoluteFilePath()), recursive, ignoreHidden);
 		else
 		{
-			QSharedPointer<File> file = File::create(m_ui->name_lineEdit->text(), entry.absoluteFilePath()
+			QSharedPointer<File> file = File::create(entry.absoluteFilePath(), m_ui->name_lineEdit->text()
 				, m_ui->comment_plainTextEdit->toPlainText(), m_ui->source_lineEdit->text());
 			if (file)
 				for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
@@ -90,7 +90,7 @@ void NewFileDialog::accept()
 		if (pathInfo.isFile())
 		{
 			// single file
-			QSharedPointer<File> file = File::create(m_ui->name_lineEdit->text(), pathInfo.absoluteFilePath()
+			QSharedPointer<File> file = File::create(pathInfo.absoluteFilePath(), m_ui->name_lineEdit->text()
 				, m_ui->comment_plainTextEdit->toPlainText(), m_ui->source_lineEdit->text());
 			if (file)
 				for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())

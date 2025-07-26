@@ -1,6 +1,8 @@
 #include "edittagdialog.h"
 #include "ui_edittagdialog.h"
 
+#include <QMessageBox>
+
 EditTagDialog::EditTagDialog(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
 	: QDialog(parent)
 	, m_ui(new Ui::EditTagDialog)
@@ -52,55 +54,92 @@ void EditTagDialog::accept()
 	QDialog::accept();
 }
 
-int EditTagDialog::updateSingleTag()
+void EditTagDialog::updateSingleTag()
 {
 	db->begin();
-	sqlite3_stmt* stmt;
-	std::string sql = "UPDATE tag SET name = ?, description = ?, urls = ? WHERE id = ?;";
-	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
-	QByteArray name = m_ui->name_lineEdit->text().toUtf8();
-	QByteArray description = m_ui->description_plainTextEdit->toPlainText().toUtf8();
-	QByteArray urls = m_ui->urls_plainTextListEdit->values().join(';').toUtf8();
-	sqlite3_bind_text(stmt, 1, name.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, description.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, urls.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 4, m_tags.first()->id());
-	int rc = sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-	if (rc != SQLITE_DONE)
-	{
-		db->rollback();
-		return rc;
-	}
+	DBResult error;
+	QSharedPointer<Tag> tag = m_tags.first();
+	if (m_ui->name_lineEdit->text() != tag->name())
+		if (error = tag->setName(m_ui->name_lineEdit->text()))
+			goto error;
+	if (m_ui->description_plainTextEdit->toPlainText() != tag->description())
+		if (error = tag->setDescription(m_ui->description_plainTextEdit->toPlainText()))
+			goto error;
+	if (m_ui->urls_plainTextListEdit->values() != tag->urls())
+		if (error = tag->setURLs(m_ui->urls_plainTextListEdit->values()))
+			goto error;
 	db->commit();
-	m_tags.first()->fetch();
-	return rc;
+	return;
+
+error:
+	db->rollback();
+	QMessageBox::warning(this, qApp->applicationName(), tr("Unable to update tag: ") + error.msg);
+
+	//db->begin();
+	//sqlite3_stmt* stmt;
+	//std::string sql = "UPDATE tag SET name = ?, description = ?, urls = ? WHERE id = ?;";
+	//sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+	//QByteArray name = m_ui->name_lineEdit->text().toUtf8();
+	//QByteArray description = m_ui->description_plainTextEdit->toPlainText().toUtf8();
+	//QByteArray urls = m_ui->urls_plainTextListEdit->values().join(';').toUtf8();
+	//sqlite3_bind_text(stmt, 1, name.constData(), -1, SQLITE_STATIC);
+	//sqlite3_bind_text(stmt, 2, description.constData(), -1, SQLITE_STATIC);
+	//sqlite3_bind_text(stmt, 3, urls.constData(), -1, SQLITE_STATIC);
+	//sqlite3_bind_int64(stmt, 4, m_tags.first()->id());
+	//int rc = sqlite3_step(stmt);
+	//sqlite3_finalize(stmt);
+	//if (rc != SQLITE_DONE)
+	//{
+	//	db->rollback();
+	//	return rc;
+	//}
+	//db->commit();
+	//m_tags.first()->fetch();
+	//return rc;
 }
 
-int EditTagDialog::updateTag()
+void EditTagDialog::updateTag()
 {
-	int rc = 0;
 	db->begin();
-	sqlite3_stmt* stmt;
-	std::string sql = "UPDATE tag SET description = ?, urls = ? WHERE id = ?;";
-	for (const QSharedPointer<Tag>& tag : m_tags)
-	{
-		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
-		QByteArray description = m_ui->description_plainTextEdit->toPlainText().toUtf8();
-		QByteArray urls = m_ui->urls_plainTextListEdit->values().join(';').toUtf8();
-		sqlite3_bind_text(stmt, 1, description.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 2, urls.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_int64(stmt, 3, tag->id());
-		rc = sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-		if (rc != SQLITE_DONE)
-		{
-			db->rollback();
-			return rc;
-		}
-	}
+	DBResult error;
+
+	if (m_ui->description_groupBox->isChecked())
+		for (const QSharedPointer<Tag>& tag : m_tags)
+			if (error = tag->setDescription(m_ui->description_plainTextEdit->toPlainText()))
+				goto error;
+	if (m_ui->urls_groupBox->isChecked())
+		for (QSharedPointer<Tag>& tag : m_tags)
+			if (error = tag->setURLs(m_ui->urls_plainTextListEdit->values()))
+				goto error;
 	db->commit();
-	for (QSharedPointer<Tag>& tag : m_tags)
-		tag->fetch();
-	return rc;
+	return;
+
+error:
+	db->rollback();
+	QMessageBox::warning(this, qApp->applicationName(), tr("Unable to update tag: ") + error.msg);
+
+	//int rc = 0;
+	//db->begin();
+	//sqlite3_stmt* stmt;
+	//std::string sql = "UPDATE tag SET description = ?, urls = ? WHERE id = ?;";
+	//for (const QSharedPointer<Tag>& tag : m_tags)
+	//{
+	//	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+	//	QByteArray description = m_ui->description_plainTextEdit->toPlainText().toUtf8();
+	//	QByteArray urls = m_ui->urls_plainTextListEdit->values().join(';').toUtf8();
+	//	sqlite3_bind_text(stmt, 1, description.constData(), -1, SQLITE_STATIC);
+	//	sqlite3_bind_text(stmt, 2, urls.constData(), -1, SQLITE_STATIC);
+	//	sqlite3_bind_int64(stmt, 3, tag->id());
+	//	rc = sqlite3_step(stmt);
+	//	sqlite3_finalize(stmt);
+	//	if (rc != SQLITE_DONE)
+	//	{
+	//		db->rollback();
+	//		return rc;
+	//	}
+	//}
+	//db->commit();
+	//for (QSharedPointer<Tag>& tag : m_tags)
+	//	tag->fetch();
+	//return rc;
 }

@@ -20,6 +20,8 @@ public:
 private slots:
 	void accept() override;
 	void reject() override;
+	void openFileDialog_file();
+	void openFileDialog_dir();
 
 private:
 	Ui::EditFileDialog* m_ui;

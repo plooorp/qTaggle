@@ -15,7 +15,7 @@ class MainWindow final : public QMainWindow
 public:
 	MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
-	enum Tab { File, Tag };
+	enum Tab { File = 0, Tag };
 
 signals:
 	void currentTabChanged(Tab index);
@@ -24,6 +24,7 @@ private slots:
 	void actionAddFile_triggered();
 	void actionCreateTag_triggered();
 	void actionEditSelected_triggered();
+	void actionCheckSelected_triggered();
 	void actionDeleteSelected_triggered();
 	void actionNewDatabase_triggered();
 	void actionOpenDatabase_triggered();

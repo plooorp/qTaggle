@@ -7,6 +7,7 @@
 Database::Database()
 	: QObject(nullptr)
 	, m_con(nullptr)
+	, m_inTransaction(false)
 {}
 
 Database::~Database()
@@ -27,27 +28,22 @@ Database* Database::instance()
 	return m_instance;
 }
 
-bool Database::open(const QString& path)
+DBResult Database::open(const QString& path)
 {
 	if (isOpen())
-	{
-		// ignore attemps to open the same database that is already open
-		if (path == m_path)
-			return false;
 		close();
-	}
 
 	if (int rc = sqlite3_open(path.toUtf8(), &m_con) != SQLITE_OK)
 	{
 		qFatal().nospace() << "Failed to open database at " << path << ": " << sqlite3_errstr(rc);
-		return false;
+		return DBResult(rc);
 	}
 	m_path = path;
-	sqlite3_stmt* stmt;
 	sqlite3_exec(m_con, "PRAGMA encoding = 'UTF-8';", 0, 0, 0);
 	sqlite3_exec(m_con, "PRAGMA foreign_keys = '1';", 0, 0, 0);
 
 	// update database schema if need be
+	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(m_con, "PRAGMA user_version;", -1, &stmt, nullptr);
 	sqlite3_step(stmt);
 	int user_version = sqlite3_column_int(stmt, 0);
@@ -56,10 +52,10 @@ bool Database::open(const QString& path)
 	switch (user_version)
 	{
 	case 0:
-		if (updateSchema_0to1() != SQLITE_OK)
+		if (int rc = updateSchema_0to1() != SQLITE_OK)
 		{
 			rollback();
-			return false;
+			return DBResult(rc);
 		}
 		user_version++;
 	}
@@ -91,10 +87,10 @@ bool Database::open(const QString& path)
 	}
 	
 	emit opened(path);
-	return true;
+	return DBResult();
 }
 
-bool Database::close(bool clearLastOpened)
+DBResult Database::close(bool clearLastOpened)
 {
 	int rc = sqlite3_close_v2(m_con);
 	if (rc == SQLITE_OK)
@@ -107,10 +103,10 @@ bool Database::close(bool clearLastOpened)
 		m_con = nullptr;
 		m_path = QString();
 		emit closed();
-		return true;
+		return DBResult();
 	}
 	qCritical() << "Failed to close database:" << sqlite3_errstr(rc);
-	return false;
+	return DBResult(rc);
 }
 
 bool Database::isOpen()
@@ -118,28 +114,65 @@ bool Database::isOpen()
 	return (bool)m_con;
 }
 
-int Database::begin()
+bool Database::inTransaction() const
 {
-	int rc = sqlite3_exec(m_con, "BEGIN TRANSACTION;", 0, 0, 0);
-	if (rc != SQLITE_OK)
-		qCritical() << sqlite3_errmsg(m_con);
-	return rc;
+	return m_inTransaction;
 }
 
-int Database::rollback()
+DBResult Database::begin()
+{
+	int rc = sqlite3_exec(m_con, "BEGIN;", 0, 0, 0);
+	if (rc == SQLITE_OK)
+	{
+		m_inTransaction = true;
+		return DBResult();
+	}
+	qCritical() << sqlite3_errmsg(m_con);
+	return DBResult(rc);
+}
+
+DBResult Database::commit()
+{
+	int rc = sqlite3_exec(m_con, "COMMIT;", 0, 0, 0);
+	if (rc == SQLITE_OK)
+	{
+		//for (const QSharedPointer<File>& file : m_filesPendingUpdate)
+		//	file->fetch();
+		//for (const QSharedPointer<Tag>& tag : m_tagsPendingUpdate)
+		//	tag->fetch();
+		//m_filesPendingUpdate.clear();
+		//m_tagsPendingUpdate.clear();
+		m_fetchOnRollback.clear();
+		m_inTransaction = false;
+		emit committed();
+		return DBResult();
+	}
+	qCritical() << sqlite3_errmsg(m_con);
+	return DBResult(rc);
+}
+
+DBResult Database::rollback()
 {
 	int rc = sqlite3_exec(m_con, "ROLLBACK;", 0, 0, 0);
-	if (rc != SQLITE_OK)
-		qCritical() << sqlite3_errmsg(m_con);
-	return rc;
+	if (rc == SQLITE_OK)
+	{
+		for (const QSharedPointer<Record>& record : m_fetchOnRollback)
+			record->fetch();
+		m_fetchOnRollback.clear();
+		m_inTransaction = false;
+		emit rollbacked();
+		return DBResult();
+	}
+	qCritical() << sqlite3_errmsg(m_con);
+	return DBResult(rc);
 }
 
-QString Database::path()
+QString Database::path() const
 {
 	return m_path;
 }
 
-QString Database::configPath()
+QString Database::configPath() const
 {
 	if (m_path.isNull())
 		return QString();
@@ -148,22 +181,14 @@ QString Database::configPath()
 	return iniFile.absoluteFilePath();
 }
 
-int Database::commit()
-{
-	int rc = sqlite3_exec(m_con, "COMMIT;", 0, 0, 0);
-	if (rc != SQLITE_OK)
-		qCritical() << sqlite3_errmsg(m_con);
-	return rc;
-}
-
 int Database::updateSchema_0to1()
 {
 	const std::string sql = R"(
 		CREATE TABLE file(
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
-			name        TEXT    NOT NULL,
 			path        TEXT    NOT NULL UNIQUE,
 			dir         TEXT    NOT NULL,
+			alias       TEXT    NOT NULL,
 			state       INTEGER NOT NULL,
 			comment     TEXT    NOT NULL,
 			source      TEXT    NOT NULL,
@@ -212,7 +237,7 @@ int Database::updateSchema_0to1()
 		END;
 
 		CREATE TRIGGER update_file_modified
-		AFTER UPDATE OF name, path, dir, comment, source, sha1digest ON file
+		AFTER UPDATE OF path, dir, alias, comment, source, sha1digest ON file
 		BEGIN
 			UPDATE file
 			SET    modified = unixepoch()
@@ -232,4 +257,18 @@ int Database::updateSchema_0to1()
 	return rc;
 }
 
+void Database::addRecordToRollbackFetch(const QSharedPointer<Record>& record)
+{
+	if (!m_fetchOnRollback.contains(record))
+		m_fetchOnRollback.append(record);
+}
+
+QStringList DBResult::m_code_str =
+{
+	"Ok",
+	"", // sqlite3_errstr() is used instead
+	"Database is closed",
+	"Invalid parameter value",
+	"File read/write error"
+};
 Database* Database::m_instance = nullptr;
