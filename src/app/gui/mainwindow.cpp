@@ -33,6 +33,10 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(m_ui.actionEditSelected, &QAction::triggered, this, &MainWindow::actionEditSelected_triggered);
 	connect(m_ui.actionCheckSelected, &QAction::triggered, this, &MainWindow::actionCheckSelected_triggered);
 	connect(m_ui.actionDeleteSelected, &QAction::triggered, this, &MainWindow::actionDeleteSelected_triggered);
+	// view
+	m_ui.menuView->addAction(m_ui.filterDock->toggleViewAction());
+	m_ui.menuView->addAction(m_ui.filePreviewDock->toggleViewAction());
+	m_ui.menuView->addAction(m_ui.propertiesDock->toggleViewAction());
 	// tools
 	connect(m_ui.actionOptions, &QAction::triggered, this, &MainWindow::actionOptions_triggered);
 	// help

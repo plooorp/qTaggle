@@ -115,14 +115,14 @@
    <addaction name="actionOpenDatabase"/>
    <addaction name="actionCloseDatabase"/>
   </widget>
-  <widget class="QDockWidget" name="dockWidget">
+  <widget class="QDockWidget" name="filterDock">
    <property name="windowTitle">
     <string>Filters</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents"/>
+   <widget class="QWidget" name="filter"/>
   </widget>
   <widget class="QDockWidget" name="filePreviewDock">
    <property name="windowTitle">
@@ -131,7 +131,7 @@
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2"/>
+   <widget class="QWidget" name="filePreview"/>
   </widget>
   <widget class="QDockWidget" name="propertiesDock">
    <property name="windowTitle">
@@ -140,7 +140,7 @@
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_1"/>
+   <widget class="QWidget" name="properties"/>
   </widget>
   <action name="actionAddFile">
    <property name="enabled">
@@ -219,6 +219,9 @@
    </property>
    <property name="text">
     <string>Delete selected</string>
+   </property>
+   <property name="shortcut">
+    <string>Del</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>
