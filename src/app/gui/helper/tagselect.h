@@ -24,7 +24,6 @@ public:
 private slots:
     void add();
     void remove();
-    void populate();
     void importTags();
     void exportTags();
     void showContextMenu(const QPoint& pos);

@@ -16,6 +16,7 @@ public:
 	void addFile(const QSharedPointer<File> file);
 	void removeFile(int row);
 	QSharedPointer<File> fileAt(int row);
+	bool contains(const QSharedPointer<File>& file);
 	void clear();
 
 private:
@@ -25,7 +26,6 @@ private:
 		Name = 0,
 		ID,
 		Path,
-		Directory,
 		State,
 		Comment,
 		Source,

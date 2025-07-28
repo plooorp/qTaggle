@@ -39,7 +39,6 @@ public:
 	DBResult setAlias(const QString& alias);
 	QString path() const;
 	DBResult setPath(const QString& path);
-	QString dir() const;
 	State state() const;
 	QString comment() const;
 	DBResult setComment(const QString& comment);
@@ -63,7 +62,6 @@ private:
 	DBResult setState(File::State state);
 	int64_t m_id;
 	QString m_path;
-	QString m_dir;
 	QString m_alias;
 	State m_state;
 	QString m_comment;

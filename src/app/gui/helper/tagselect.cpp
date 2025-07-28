@@ -4,8 +4,10 @@
 #include <QApplication>
 #include <QCompleter>
 #include <QStringListModel>
+#include <QMessageBox>
 #include <QMenu>
 #include <QClipboard>
+#include <QInputDialog>
 
 #include "app/database.h"
 #include "app/utils.h"
@@ -31,8 +33,20 @@ TagSelect::TagSelect(QList<QSharedPointer<Tag>> tags, QWidget* parent)
 	connect(m_ui->buttonImport, &QPushButton::pressed, this, &TagSelect::importTags);
 	connect(m_ui->buttonExport, &QPushButton::pressed, this, &TagSelect::exportTags);
 
-	//QCompleter completer = new 
-	//m_ui->lineEdit->setCompleter()
+	QCompleter* completer = new QCompleter(this);
+	completer->setCaseSensitivity(Qt::CaseInsensitive);
+	completer->setCompletionMode(QCompleter::PopupCompletion);
+	completer->setModelSorting(QCompleter::CaseInsensitivelySortedModel);
+	QStringList names;
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "SELECT name FROM tag ORDER BY name ASC;", -1, &stmt, nullptr);
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+		names.append(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 0), sqlite3_column_bytes(stmt, 0)));
+	sqlite3_finalize(stmt);
+	QStringListModel* completerModel = new QStringListModel(names, completer);
+	completer->setModel(completerModel);
+	m_ui->lineEdit->setCompleter(completer);
+
 	if (!tags.isEmpty())
 		setTags(tags);
 	m_ui->treeView->setModel(m_model);
@@ -43,49 +57,18 @@ TagSelect::~TagSelect()
 	delete m_ui;
 }
 
-void TagSelect::populate()
-{
-	//for (int i = m_modelDeselected->rowCount() - 1; i >= 0; i--)
-	//	m_modelDeselected->removeTag(i);
-	//for (QSharedPointer<Tag> tag : Tag::fromQuery(m_ui->lineEditFilter->text()))
-	//{
-	//	for (int i = 0; i < m_modelSelected->rowCount(); i++)
-	//		if (tag->id() == m_modelSelected->tagAt(i)->id())
-	//			continue;
-	//	m_modelDeselected->addTag(tag);
-	//}
-}
-
 void TagSelect::add()
 {
-	QByteArray query = m_ui->lineEdit->text()
+	const QString query = m_ui->lineEdit->text()
 		.trimmed()
-		.toLower()
-		.toUtf8();
-	sqlite3_stmt* stmt;
-	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag WHERE name = ?;", -1, &stmt, nullptr);
-	sqlite3_bind_text(stmt, 1, query.constData(), -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) == SQLITE_ROW)
+		.toLower();
+	if (const QSharedPointer<Tag> tag = Tag::fromName(query))
 	{
-		QSharedPointer<Tag> tag = Tag::fromStmt(stmt);
 		m_model->addTag(tag);
 		m_ui->lineEdit->clear();
 	}
-	sqlite3_finalize(stmt);
-	//QModelIndexList selected = m_ui->listView_deselected->selectionModel()->selectedRows();
-	//// greatest to least by row index
-	//std::sort(selected.begin(), selected.end()
-	//	, [](const QModelIndex& a, const QModelIndex& b) -> bool
-	//	{
-	//		return a.row() > b.row();
-	//	});
-	//for (const QModelIndex& index : selected)
-	//{
-	//	QSharedPointer<Tag> tag = m_modelDeselected->tagAt(index.row());
-	//	//m_modelDeselected->removeTag(tag);
-	//	m_modelDeselected->removeTag(index.row());
-	//	m_modelSelected->addTag(tag);
-	//}
+	else
+		QMessageBox::warning(this, qApp->applicationName(), tr("Unknown tag: ") + query);
 }
 
 void TagSelect::remove()
@@ -126,7 +109,28 @@ void TagSelect::showContextMenu(const QPoint& pos)
 
 void TagSelect::importTags()
 {
-	
+	QInputDialog dialog(this);
+	dialog.setWindowTitle(tr("Import tags"));
+	dialog.setLabelText(tr("Paste tags below, space delimited."));
+	dialog.setOptions(QInputDialog::UsePlainTextEditForTextInput);
+	if (dialog.exec())
+	{
+		QStringList invalidTags;
+		for (const QString& name : dialog.textValue().trimmed().split(' '))
+		{
+			QSharedPointer<Tag> tag = Tag::fromName(name);
+			if (tag)
+			{
+				if (!m_model->contains(tag))
+					m_model->addTag(tag);
+			}
+			else
+				invalidTags.append(name);
+		}
+		if (!invalidTags.isEmpty())
+			QMessageBox::warning(this, tr("Some or all tags failed to import")
+				, tr("The following tags do not exist: ") + invalidTags.join(", "));
+	}
 }
 
 void TagSelect::exportTags()

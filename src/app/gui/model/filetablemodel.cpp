@@ -23,7 +23,6 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 		case Column::ID: return QString::number(file->id());
 		case Column::Name: return file->name();
 		case Column::Path: return file->path();
-		case Column::Directory: return file->dir();
 		case Column::State: return File::stateString(file->state());
 		case Column::Sha1digest: return QString(file->sha1().toHex());
 		case Column::Comment: return file->comment();
@@ -36,6 +35,8 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 	{
 		switch (index.column())
 		{
+		case Column::Sha1digest:
+			return QString(file->sha1().toHex());
 		case Column::Created:
 			return QLocale().toString(file->created(), QLocale::LongFormat);
 		case Column::Modified:
@@ -67,7 +68,6 @@ QVariant FileTableModel::headerData(int section, Qt::Orientation orientation, in
 		case Column::ID: return tr("ID");
 		case Column::Name: return tr("Name");
 		case Column::Path: return tr("Path");
-		case Column::Directory: return tr("Directory");
 		case Column::Comment: return tr("Comment");
 		case Column::Source: return tr("Source");
 		case Column::Sha1digest: return tr("SHA-1");
@@ -89,7 +89,7 @@ int FileTableModel::columnCount(const QModelIndex& parent) const
 {
 	if (parent.isValid())
 		return 0;
-	return 10;
+	return 9;
 }
 
 void FileTableModel::addFile(const QSharedPointer<File> file)
@@ -113,6 +113,11 @@ QSharedPointer<File> FileTableModel::fileAt(int row)
 	if (row < 0 || row >= m_files.size())
 		return QSharedPointer<File>();
 	return m_files.at(row);
+}
+
+bool FileTableModel::contains(const QSharedPointer<File>& file)
+{
+	return m_files.contains(file);
 }
 
 void FileTableModel::clear()

@@ -21,7 +21,7 @@ EditFileDialog::EditFileDialog(QSharedPointer<File> file, QWidget* parent, Qt::W
 
 	m_ui->lineEdit_alias->setText(m_file->alias());
 	m_ui->lineEdit_fileName->setText(QFileInfo(file->path()).fileName());
-	m_ui->lineEdit_dir->setText(file->dir());
+	m_ui->lineEdit_dir->setText(QFileInfo(file->path()).dir().path());
 	m_ui->lineEdit_source->setText(m_file->source());
 	m_ui->plainTextEdit_comment->setPlainText(m_file->comment());
 	

@@ -1,4 +1,5 @@
 #include "tag.h"
+
 #include <QDebug>
 #include <QUrl>
 
@@ -134,40 +135,51 @@ QSharedPointer<Tag> Tag::fromID(const int64_t id)
 	return tag;
 }
 
+QSharedPointer<Tag> Tag::fromName(const QString& name)
+{
+	QSharedPointer<Tag> tag;
+	if (!db->isOpen())
+		return tag;
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag WHERE name = ?;", -1, &stmt, nullptr);
+	QByteArray name_bytes = name.toUtf8();
+	sqlite3_bind_text(stmt, 1, name_bytes.constData(), -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+		tag = fromStmt(stmt);
+	sqlite3_finalize(stmt);
+	return tag;
+}
+
 QList<QSharedPointer<Tag>> Tag::fromQuery(const QString& query)
 {
 	QList<QSharedPointer<Tag>> tags;
 	if (!db->isOpen())
 		return tags;
-	QString q = query.trimmed();
-	std::string sql;
-	if (q.isNull() || q.isEmpty())
-		sql = "SELECT * FROM tag;";
+	QString query_trimmed = query.trimmed();
+	QByteArray query_bytes = query_trimmed.toUtf8();
+	sqlite3_stmt* stmt;
+	if (query_trimmed.isEmpty())
+		sqlite3_prepare_v2(db->con(), "SELECT * FROM tag;", -1, &stmt, nullptr);
 	else
 	{
-		sql = "SELECT * FROM tag WHERE name LIKE ?;";
-		q = "%" + q + "%";
+		std::string sql = R"(
+			SELECT * FROM tag
+			WHERE name LIKE concat('%', ?, '%')
+			ORDER BY
+				CASE
+					WHEN name LIKE concat(?, '%') THEN 1
+					WHEN name LIKE concat('%', ?, '%') THEN 2
+					ELSE 3
+				END
+				, degree DESC;
+		)";
+		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+		sqlite3_bind_text(stmt, 1, query_bytes.constData(), -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 2, query_bytes.constData(), -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, query_bytes.constData(), -1, SQLITE_STATIC);
 	}
-	sqlite3_stmt* stmt;
-	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, 0);
-	QByteArray query_bytes = query.toUtf8();
-	sqlite3_bind_text(stmt, 1, query_bytes.constData(), -1, SQLITE_STATIC);
 	while (sqlite3_step(stmt) == SQLITE_ROW)
-	{
 		tags.append(fromStmt(stmt));
-		//int64_t id = sqlite3_column_int64(stmt, 0);
-		//if (m_instancesByID.contains(id))
-		//	if (QSharedPointer<Tag> tag = m_instancesByID.value(id).toStrongRef())
-		//	{
-		//		tags.append(tag);
-		//		continue;
-		//	}
-		//QSharedPointer<Tag> tag(new Tag(stmt));
-		//tags.append(tag);
-		//QWeakPointer<Tag> tag_weak = tag.toWeakRef();
-		//m_instancesByID.insert(tag->id(), tag_weak);
-		//m_instancesByName.insert(tag->name(), tag_weak);
-	}
 	sqlite3_finalize(stmt);
 	return tags;
 }

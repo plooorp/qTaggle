@@ -1,10 +1,10 @@
 #include "mainwindow.h"
 
 #include <QAction>
-#include <QFileDialog>
-#include <QSettings>
 #include <QApplication>
+#include <QFileDialog>
 #include <QMessageBox>
+#include <QSettings>
 
 #include "app/database.h"
 //#include "app/database.test.h"
@@ -13,12 +13,14 @@
 #include "app/gui/dialog/newfiledialog.h"
 #include "app/gui/docked/properties.h"
 #include "app/gui/docked/filepreview.h"
+#include "app/gui/docked/filters.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 {
 	m_ui.setupUi(this);
 
+	m_ui.filterDock->setWidget(new Filters(this));
 	m_ui.filePreviewDock->setWidget(new FilePreview(m_ui.fileList, this));
 	m_ui.propertiesDock->setWidget(new Properties(this, m_ui.fileList, m_ui.tagList, this));
 

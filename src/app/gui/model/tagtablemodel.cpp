@@ -118,6 +118,11 @@ QList<QSharedPointer<Tag>> TagTableModel::tags()
 	return m_tags;
 }
 
+bool TagTableModel::contains(const QSharedPointer<Tag>& tag)
+{
+	return m_tags.contains(tag);
+}
+
 void TagTableModel::clear()
 {
 	if (m_tags.isEmpty())

@@ -17,6 +17,7 @@ public:
 	void removeTag(int row);
 	QSharedPointer<Tag> tagAt(int row);
 	QList<QSharedPointer<Tag>> tags();
+	bool contains(const QSharedPointer<Tag>& tag);
 	void clear();
 
 private:
