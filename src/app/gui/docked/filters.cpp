@@ -1,6 +1,7 @@
 #include "filters.h"
 
 #include <QSettings>
+#include <QMenu>
 
 #include "app/tag.h"
 #include "app/file.h"
@@ -9,11 +10,16 @@
 Filters::Filters(QWidget* parent)
 	: QTreeWidget(parent)
 {
+	setContextMenuPolicy(Qt::CustomContextMenu);
 	setHeaderHidden(true);
 	setColumnCount(1);
 
 	connect(db, &Database::opened, this, &Filters::populate);
-	connect(db, &Database::closed, this, &Filters::clear);
+	connect(db, &Database::closed, this, &Filters::depopulate);
+
+	m_actionRefresh = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::ViewRefresh), tr("Refresh"), this);
+	connect(this, &QWidget::customContextMenuRequested, this, &Filters::showContextMenu);
+	connect(m_actionRefresh, &QAction::triggered, this, &Filters::refresh);
 
 	m_state = new QTreeWidgetItem(this, QStringList{ "States" });
 	new QTreeWidgetItem(m_state, QStringList{ File::stateString(File::Ok) });
@@ -31,11 +37,7 @@ Filters::Filters(QWidget* parent)
 void Filters::populate()
 {
 	sqlite3_stmt* stmt;
-
-	for (const QTreeWidgetItem* item : m_tag->takeChildren())
-		delete item;
-
-	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag ORDER BY degree DESC LIMIT 20;", -1, &stmt, nullptr);
+	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag ORDER BY degree DESC LIMIT 24;", -1, &stmt, nullptr);
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		const QSharedPointer<Tag> tag = Tag::fromStmt(stmt);
@@ -43,10 +45,6 @@ void Filters::populate()
 		item->setToolTip(0, tag->name() + " " + QLocale().toString(tag->degree()));
 	}
 	sqlite3_finalize(stmt);
-
-	for (const QTreeWidgetItem* item : m_dir->takeChildren())
-		delete item;
-
 	sqlite3_prepare_v2(db->con(), "SELECT DISTINCT dir FROM file ORDER BY dir;", -1, &stmt, nullptr);
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
@@ -55,6 +53,14 @@ void Filters::populate()
 		item->setToolTip(0, dir);
 	}
 	sqlite3_finalize(stmt);
+}
+
+void Filters::depopulate()
+{
+	for (const QTreeWidgetItem* item : m_tag->takeChildren())
+		delete item;
+	for (const QTreeWidgetItem* item : m_dir->takeChildren())
+		delete item;
 }
 
 void Filters::readSettings()
@@ -71,4 +77,20 @@ void Filters::writeSettings()
 	settings.setValue("GUI/Filters/stateExpanded", m_state->isExpanded());
 	settings.setValue("GUI/Filters/tagExpanded", m_tag->isExpanded());
 	settings.setValue("GUI/Filters/dirExpanded", m_dir->isExpanded());
+}
+
+void Filters::refresh()
+{
+	depopulate();
+	populate();
+}
+
+void Filters::showContextMenu(const QPoint& pos)
+{
+	if (indexAt(pos).isValid())
+		clearSelection();
+	QMenu* menu = new QMenu(this);
+	menu->setAttribute(Qt::WA_DeleteOnClose);
+	menu->addAction(m_actionRefresh);
+	menu->popup(QCursor::pos());
 }

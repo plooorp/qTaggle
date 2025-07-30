@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QTreeWidget>
-#include <QTreeWidgetItem>
 
 class Filters : public QTreeWidget
 {
@@ -10,11 +9,17 @@ class Filters : public QTreeWidget
 public:
 	explicit Filters(QWidget* parent);
 
+private slots:
+	void refresh();
+	void showContextMenu(const QPoint& pos);
+
 private:
 	QTreeWidgetItem* m_state;
 	QTreeWidgetItem* m_tag;
 	QTreeWidgetItem* m_dir;
+	QAction* m_actionRefresh;
 	void populate();
+	void depopulate();
 	void readSettings();
 	void writeSettings();
 };
