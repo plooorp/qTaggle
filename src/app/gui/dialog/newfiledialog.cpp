@@ -82,7 +82,7 @@ void NewFileDialog::accept()
 {
 	QStringList paths = m_ui->pathList_plainTextEdit->values();
 	if (!m_ui->path_lineEdit->text().trimmed().isEmpty())
-		paths.append(m_ui->path_lineEdit->text());
+		paths.insert(0, m_ui->path_lineEdit->text());
 
 	for (QString path : paths)
 	{
