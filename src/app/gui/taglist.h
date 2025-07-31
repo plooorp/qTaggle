@@ -1,9 +1,6 @@
 #pragma once
 
 #include <QWidget>
-#include <QStandardItemModel>
-#include <QtWidgets/QLineEdit>
-#include <QtWidgets/QTreeView>
 #include "app/tag.h"
 #include "app/gui/model/tagtablemodel.h"
 

@@ -1,15 +1,10 @@
 #include "taglist.h"
 #include "ui_taglist.h"
 
-#include <QLocale>
-#include <QStandardItem>
-#include <QHeaderView>
 #include <QMenu>
-#include <QApplication>
-#include <QVBoxLayout>
-#include <QtWidgets/QToolBar>
-#include <QtWidgets/QMessageBox>
+#include <QMessageBox>
 #include "app/gui/dialog/edittagdialog.h"
+#include "app/gui/dialog/edittagdialogmulti.h"
 #include "app/gui/dialog/newtagdialog.h"
 
 TagList::TagList(QWidget* parent)
@@ -44,37 +39,6 @@ void TagList::populate()
 	m_model->clear();
 	for (QSharedPointer<Tag> tag : Tag::fromQuery(m_ui->lineEdit->text()))
 		m_model->addTag(tag);
-	//QString DATETIME_SHORTFORMAT = QLocale::system().dateTimeFormat(QLocale::ShortFormat);
-	//QString DATETIME_LONGFORMAT = QLocale::system().dateTimeFormat(QLocale::LongFormat);
-	//m_tags.clear();
-	//m_model->clear();
-	//for (QSharedPointer<Tag> tag : Tag::fromQuery(m_lineEdit->text()))
-	//{
-	//	QStandardItem* id = new QStandardItem(QString::number(tag->id()));
-	//	id->setEditable(false);
-	//	QStandardItem* name = new QStandardItem(tag->name());
-	//	name->setToolTip(tag->name());
-	//	name->setEditable(false);
-	//	QStandardItem* description = new QStandardItem(tag->description());
-	//	description->setToolTip(tag->description());
-	//	description->setEditable(false);
-	//	QString urls_str = tag->urls().join(';');
-	//	QStandardItem* urls = new QStandardItem(urls_str);
-	//	urls->setToolTip(urls_str);
-	//	urls->setEditable(false);
-	//	QStandardItem* degree = new QStandardItem(QString::number(tag->degree()));
-	//	degree->setToolTip(QString::number(tag->degree()));
-	//	degree->setEditable(false);
-	//	QStandardItem* modified = new QStandardItem(tag->modified().toString(DATETIME_SHORTFORMAT));
-	//	modified->setToolTip(tag->modified().toString(DATETIME_LONGFORMAT));
-	//	modified->setEditable(false);
-	//	QStandardItem* created = new QStandardItem(tag->created().toString(DATETIME_SHORTFORMAT));
-	//	created->setToolTip(tag->created().toString(DATETIME_LONGFORMAT));
-	//	created->setEditable(false);
-
-	//	m_model->appendRow(QList<QStandardItem*>{id, name, description, urls, degree, modified, created});
-	//	m_tags.append(tag);
-	//}
 }
 
 void TagList::depopulate()
@@ -95,7 +59,11 @@ void TagList::editSelected()
 	QList<QSharedPointer<Tag>> tags = selectedTags();
 	if (tags.isEmpty())
 		return;
-	EditTagDialog* dialog = new EditTagDialog(tags, this);
+	QDialog* dialog;
+	if (tags.size() == 1)
+		dialog = new EditTagDialog(tags.first(), this);
+	else
+		dialog = new EditTagDialogMulti(tags, this);
 	dialog->setAttribute(Qt::WA_DeleteOnClose);
 	dialog->show();
 }

@@ -15,7 +15,7 @@ class EditTagDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit EditTagDialog(const QList<QSharedPointer<Tag>>& tags, QWidget* parent = nullptr);
+	explicit EditTagDialog(const QSharedPointer<Tag>& tag, QWidget* parent = nullptr);
 	~EditTagDialog();
 
 private slots:
@@ -23,7 +23,5 @@ private slots:
 
 private:
 	Ui::EditTagDialog* m_ui;
-	QList<QSharedPointer<Tag>> m_tags;
-	void updateTag();
-	void updateSingleTag();
+	QSharedPointer<Tag> m_tag;
 };

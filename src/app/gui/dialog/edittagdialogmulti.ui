@@ -1,57 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>EditTagDialog</class>
- <widget class="QDialog" name="EditTagDialog">
+ <class>EditTagDialogMulti</class>
+ <widget class="QDialog" name="EditTagDialogMulti">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>432</width>
-    <height>395</height>
+    <width>427</width>
+    <height>385</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <property name="modal">
-   <bool>false</bool>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Name</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLineEdit" name="name"/>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_2">
-     <property name="text">
+    <widget class="QGroupBox" name="descriptionGroup">
+     <property name="title">
       <string>Description</string>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QPlainTextEdit" name="description"/>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
-    <widget class="QPlainTextEdit" name="description"/>
-   </item>
-   <item>
-    <widget class="QLabel" name="label_3">
-     <property name="text">
+    <widget class="QGroupBox" name="urlsGroup">
+     <property name="title">
       <string>URLs (one per line)</string>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="PlainTextListEdit" name="urls"/>
+      </item>
+     </layout>
     </widget>
-   </item>
-   <item>
-    <widget class="PlainTextListEdit" name="urls"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
-     </property>
      <property name="standardButtons">
       <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
