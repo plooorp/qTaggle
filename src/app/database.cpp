@@ -35,7 +35,7 @@ DBResult Database::open(const QString& path)
 
 	if (int rc = sqlite3_open(path.toUtf8(), &m_con) != SQLITE_OK)
 	{
-		qFatal().nospace() << "Failed to open database at " << path << ": " << sqlite3_errstr(rc);
+		qCritical().nospace() << "Failed to open database at " << path << ": " << sqlite3_errstr(rc);
 		return DBResult(rc);
 	}
 	m_path = path;
@@ -55,12 +55,13 @@ DBResult Database::open(const QString& path)
 		if (int rc = updateSchema_0to1() != SQLITE_OK)
 		{
 			rollback();
+			close();
 			return DBResult(rc);
 		}
 		user_version++;
 	}
 	commit();
-	std::string q = "PRAGMA user_version = " + std::to_string(user_version) + ";";
+	const std::string q = "PRAGMA user_version = " + std::to_string(user_version) + ";";
 	sqlite3_exec(m_con, q.c_str(), 0, 0, 0);
 
 	QSettings settings;
@@ -121,7 +122,7 @@ bool Database::inTransaction() const
 
 DBResult Database::begin()
 {
-	int rc = sqlite3_exec(m_con, "BEGIN;", 0, 0, 0);
+	int rc = sqlite3_exec(m_con, "BEGIN TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
 	{
 		m_inTransaction = true;
@@ -133,7 +134,7 @@ DBResult Database::begin()
 
 DBResult Database::commit()
 {
-	int rc = sqlite3_exec(m_con, "COMMIT;", 0, 0, 0);
+	int rc = sqlite3_exec(m_con, "COMMIT TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
 	{
 		m_fetchOnRollback.clear();
@@ -147,7 +148,7 @@ DBResult Database::commit()
 
 DBResult Database::rollback()
 {
-	int rc = sqlite3_exec(m_con, "ROLLBACK;", 0, 0, 0);
+	int rc = sqlite3_exec(m_con, "ROLLBACK TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
 	{
 		for (const QSharedPointer<Record>& record : m_fetchOnRollback)
@@ -238,7 +239,7 @@ int Database::updateSchema_0to1()
 		BEGIN
 			UPDATE file
 			SET    modified = unixepoch()
-			WHERE  id = file.id;
+			WHERE  id = NEW.id;
 		END;
 
 		CREATE TRIGGER update_tag_modified
@@ -246,11 +247,12 @@ int Database::updateSchema_0to1()
 		BEGIN
 			UPDATE tag
 			SET    modified = unixepoch()
-			WHERE  id = tag.id;
-		END;)";
+			WHERE  id = NEW.id;
+		END;
+	)";
 	int rc = sqlite3_exec(m_con, sql.c_str(), 0, 0, 0);
 	if (rc != SQLITE_OK)
-		qFatal() << "Failed updating database from user_version 0 to 1:" << sqlite3_errmsg(m_con);
+		qCritical() << "Failed updating database from user_version 0 to 1:" << sqlite3_errmsg(m_con);
 	return rc;
 }
 

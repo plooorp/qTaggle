@@ -15,8 +15,8 @@ public:
 	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 	void addFile(const QSharedPointer<File> file);
 	void removeFile(int row);
-	QSharedPointer<File> fileAt(int row);
-	bool contains(const QSharedPointer<File>& file);
+	QSharedPointer<File> fileAt(int row) const;
+	bool contains(const QSharedPointer<File>& file) const;
 	void clear();
 
 private:

@@ -58,7 +58,7 @@ AFTER UPDATE OF path, dir, alias, comment, source, sha1digest ON file
 BEGIN
 	UPDATE file
 	SET    modified = unixepoch()
-	WHERE  id = file.id;
+	WHERE  id = NEW.id;
 END;
 
 CREATE TRIGGER update_tag_modified
@@ -66,5 +66,5 @@ AFTER UPDATE OF name, description, urls ON tag
 BEGIN
 	UPDATE tag
 	SET    modified = unixepoch()
-	WHERE  id = tag.id;
+	WHERE  id = NEW.id;
 END;

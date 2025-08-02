@@ -13,14 +13,13 @@ int main(int argc, char *argv[])
 		QCoreApplication::setOrganizationName("qTaggle");
 		QApplication::setStyle("windowsvista");
 		QApplication app(argc, argv);
-		//app.setApplicationName("qTaggle");
 		MainWindow window;
 		window.show();
 		return app.exec();
 	}
 	catch (const std::exception& e)
 	{
-		qFatal() << e.what();
+		qCritical() << e.what();
 		delete db;
 		return EXIT_FAILURE;
 	}

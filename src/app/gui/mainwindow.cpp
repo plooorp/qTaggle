@@ -128,7 +128,7 @@ void MainWindow::actionNewDatabase_triggered()
 	if (dialog.exec())
 	{
 		const QString path = dialog.selectedFiles().first();
-		openDatabase(path);
+		createDatabase(path);
 	}
 }
 
@@ -240,6 +240,18 @@ void MainWindow::writeSettings()
 	settings.setValue("GUI/MainWindow/geometry", saveGeometry());
 	settings.setValue("GUI/MainWindow/state", saveState());
 	settings.setValue("GUI/MainWindow/currentIndex", m_ui.tabWidget->currentIndex());
+}
+
+void MainWindow::createDatabase(const QString& path)
+{
+	if (DBResult error = db->open(path))
+		QMessageBox::warning(this, qApp->applicationName()
+			, tr("Failed to create new database: ") + error.msg);
+	else
+	{
+		setWindowTitle(qApp->applicationName() + " - " + path);
+		m_ui.statusbar->showMessage(tr("Database opened"), 2000);
+	}
 }
 
 void MainWindow::openDatabase(const QString& path)

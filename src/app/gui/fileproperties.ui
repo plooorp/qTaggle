@@ -84,6 +84,9 @@
      <property name="textFormat">
       <enum>Qt::TextFormat::MarkdownText</enum>
      </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
    <item row="6" column="1">

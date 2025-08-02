@@ -30,7 +30,13 @@ void File::initFile(sqlite3_stmt* stmt)
 	m_modified = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 10));
 
 	sqlite3_stmt* _stmt;
-	sqlite3_prepare_v2(db->con(), "SELECT * FROM file_tag WHERE file_id = ?;", -1, &_stmt, nullptr);
+	const char* sql = R"(
+		SELECT ft.* FROM file_tag AS ft
+		INNER JOIN tag ON tag.id = ft.tag_id
+		WHERE ft.file_id = ?
+		ORDER BY tag.name ASC;
+	)";
+	sqlite3_prepare_v2(db->con(), sql, -1, &_stmt, nullptr);
 	sqlite3_bind_int64(_stmt, 1, m_id);
 	m_tags.clear();
 	while (sqlite3_step(_stmt) == SQLITE_ROW)

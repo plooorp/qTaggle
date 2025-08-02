@@ -15,16 +15,16 @@ public:
 	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 	void addTag(const QSharedPointer<Tag> tag);
 	void removeTag(int row);
-	QSharedPointer<Tag> tagAt(int row);
+	QSharedPointer<Tag> tagAt(int row) const;
 	QList<QSharedPointer<Tag>> tags();
-	bool contains(const QSharedPointer<Tag>& tag);
+	bool contains(const QSharedPointer<Tag>& tag) const;
 	void clear();
 
 private:
 	QList<QSharedPointer<Tag>> m_tags;
 	enum Column
 	{
-		Name,
+		Name = 0,
 		Description,
 		ID,
 		URLs,

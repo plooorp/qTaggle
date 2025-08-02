@@ -16,10 +16,11 @@ class TagSelect : public QWidget
 
 public:
     explicit TagSelect(QWidget* parent = nullptr);
-    explicit TagSelect(QList<QSharedPointer<Tag>> tags, QWidget* parent = nullptr);
+    explicit TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent = nullptr);
+    explicit TagSelect(const QList<QSharedPointer<File>>& files, QWidget* parent = nullptr);
     ~TagSelect();
     QList<QSharedPointer<Tag>> tags();
-    void setTags(const QList<QSharedPointer<Tag>> tags);
+    void setTags(const QList<QSharedPointer<Tag>>& tags);
 
 private slots:
     void add();
@@ -31,6 +32,4 @@ private slots:
 private:
     Ui::TagSelect *m_ui;
     TagTableModel* m_model;
-    //QCompleter* m_completer;
-    //QStringListModel* m_completerModel;
 };

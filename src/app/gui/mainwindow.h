@@ -40,5 +40,6 @@ private:
 	void closeEvent(QCloseEvent* event) override;
 	void readSettings();
 	void writeSettings();
+	void createDatabase(const QString& path);
 	void openDatabase(const QString& path);
 };

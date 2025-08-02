@@ -15,8 +15,8 @@ NewFileDialog::NewFileDialog(QWidget* parent, Qt::WindowFlags f)
 	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &NewFileDialog::accept);
 	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &NewFileDialog::reject);
 
-	connect(m_ui->chooseFile_pushButton, &QPushButton::pressed, this, &NewFileDialog::openFileDialog_file);
-	connect(m_ui->chooseDir_pushButton, &QPushButton::pressed, this, &NewFileDialog::openFileDialog_dir);
+	connect(m_ui->chooseFile_pushButton, &QPushButton::clicked, this, &NewFileDialog::openFileDialog_file);
+	connect(m_ui->chooseDir_pushButton, &QPushButton::clicked, this, &NewFileDialog::openFileDialog_dir);
 }
 
 NewFileDialog::~NewFileDialog()

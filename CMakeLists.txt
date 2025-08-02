@@ -9,3 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(sqlite3 STATIC ${PROJECT_SOURCE_DIR}/lib/sqlite3/sqlite3.c)
 
 add_subdirectory(src)
+
+# auto-generated ui headers
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

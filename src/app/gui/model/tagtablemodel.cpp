@@ -106,7 +106,7 @@ void TagTableModel::removeTag(int row)
 	endRemoveRows();
 }
 
-QSharedPointer<Tag> TagTableModel::tagAt(int row)
+QSharedPointer<Tag> TagTableModel::tagAt(int row) const
 {
 	if (row < 0 || row >= m_tags.size())
 		return QSharedPointer<Tag>();
@@ -118,7 +118,7 @@ QList<QSharedPointer<Tag>> TagTableModel::tags()
 	return m_tags;
 }
 
-bool TagTableModel::contains(const QSharedPointer<Tag>& tag)
+bool TagTableModel::contains(const QSharedPointer<Tag>& tag) const
 {
 	return m_tags.contains(tag);
 }

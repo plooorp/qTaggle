@@ -1,9 +1,8 @@
 #include "editfiledialog.h"
 #include "ui_editfiledialog.h"
 
-#include <QFileInfo>
-#include <QMessageBox>
 #include <QFileDialog>
+#include <QMessageBox>
 
 EditFileDialog::EditFileDialog(QSharedPointer<File> file, QWidget* parent, Qt::WindowFlags f)
 	: QDialog(parent, f)
@@ -15,9 +14,8 @@ EditFileDialog::EditFileDialog(QSharedPointer<File> file, QWidget* parent, Qt::W
 	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &EditFileDialog::accept);
 	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &EditFileDialog::reject);
 
-	connect(m_ui->btnChooseFile, &QPushButton::pressed, this, &EditFileDialog::openFileDialog_dir);
-	connect(m_ui->btnChooseDir, &QPushButton::pressed, this, &EditFileDialog::openFileDialog_dir);
-
+	connect(m_ui->btnChooseFile, &QPushButton::clicked, this, &EditFileDialog::openFileDialog_dir);
+	connect(m_ui->btnChooseDir, &QPushButton::clicked, this, &EditFileDialog::openFileDialog_dir);
 
 	m_ui->lineEdit_alias->setText(m_file->alias());
 	m_ui->lineEdit_fileName->setText(QFileInfo(file->path()).fileName());
@@ -72,19 +70,13 @@ void EditFileDialog::accept()
 		if (!newTags.contains(tag))
 			if (error = m_file->removeTag(tag))
 				goto error;
-
 	db->commit();
-	QDialog::accept();
-	return;
+	return QDialog::accept();
 
 error:
 	db->rollback();
-	QMessageBox::warning(this, qApp->applicationName(), tr("Unable to update file: ") + error.msg);
-}
-
-void EditFileDialog::reject()
-{
-	QDialog::reject();
+	QMessageBox::warning(this, qApp->applicationName()
+		, tr("Failed to update file: ") + error.msg);
 }
 
 void EditFileDialog::keyPressEvent(QKeyEvent* evt)

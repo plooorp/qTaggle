@@ -203,6 +203,9 @@
    <property name="text">
     <string>Edit selected...</string>
    </property>
+   <property name="shortcut">
+    <string>F2</string>
+   </property>
   </action>
   <action name="actionNewDatabase">
    <property name="text">

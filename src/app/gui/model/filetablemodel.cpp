@@ -108,14 +108,14 @@ void FileTableModel::removeFile(int row)
 	endRemoveRows();
 }
 
-QSharedPointer<File> FileTableModel::fileAt(int row)
+QSharedPointer<File> FileTableModel::fileAt(int row) const
 {
 	if (row < 0 || row >= m_files.size())
 		return QSharedPointer<File>();
 	return m_files.at(row);
 }
 
-bool FileTableModel::contains(const QSharedPointer<File>& file)
+bool FileTableModel::contains(const QSharedPointer<File>& file) const
 {
 	return m_files.contains(file);
 }

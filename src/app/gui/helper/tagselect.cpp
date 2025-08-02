@@ -1,7 +1,6 @@
 #include "tagselect.h"
 #include "ui_tagselect.h"
 
-#include <QApplication>
 #include <QCompleter>
 #include <QStringListModel>
 #include <QMessageBox>
@@ -10,28 +9,25 @@
 #include <QInputDialog>
 
 #include "app/database.h"
-#include "app/utils.h"
 
 TagSelect::TagSelect(QWidget *parent)
 	: TagSelect(QList<QSharedPointer<Tag>>(), parent)
 {}
 
-TagSelect::TagSelect(QList<QSharedPointer<Tag>> tags, QWidget* parent)
+TagSelect::TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
 	: m_ui(new Ui::TagSelect)
 	, m_model(new TagTableModel(this))
-	//, m_completerModel(new QStringListModel(this))
-	//, m_completer(new QCompleter(m_completerModel, this))
 {
 	m_ui->setupUi(this);
 
-	connect(m_ui->buttonAdd, &QPushButton::pressed, this, &TagSelect::add);
+	connect(m_ui->buttonAdd, &QPushButton::clicked, this, &TagSelect::add);
 	connect(m_ui->actionRemove, &QAction::triggered, this, &TagSelect::remove);
 	connect(m_ui->lineEdit, &QLineEdit::returnPressed, this, &TagSelect::add);
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &TagSelect::remove);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &TagSelect::showContextMenu);
 
-	connect(m_ui->buttonImport, &QPushButton::pressed, this, &TagSelect::importTags);
-	connect(m_ui->buttonExport, &QPushButton::pressed, this, &TagSelect::exportTags);
+	connect(m_ui->buttonImport, &QPushButton::clicked, this, &TagSelect::importTags);
+	connect(m_ui->buttonExport, &QPushButton::clicked, this, &TagSelect::exportTags);
 
 	QCompleter* completer = new QCompleter(this);
 	completer->setCaseSensitivity(Qt::CaseInsensitive);
@@ -88,7 +84,7 @@ QList<QSharedPointer<Tag>> TagSelect::tags()
 	return m_model->tags();
 }
 
-void TagSelect::setTags(const QList<QSharedPointer<Tag>> tags)
+void TagSelect::setTags(const QList<QSharedPointer<Tag>>& tags)
 {
 	m_model->clear();
 	for (const QSharedPointer<Tag>& tag : tags)
