@@ -12,9 +12,15 @@ set(PROJECT_SOURCES
 	gui/dialog/editfiledialog.cpp
 	gui/dialog/editfiledialog.h
 	gui/dialog/editfiledialog.ui
+	gui/dialog/editfiledialogmulti.cpp
+	gui/dialog/editfiledialogmulti.h
+	gui/dialog/editfiledialogmulti.ui
 	gui/dialog/edittagdialog.cpp
 	gui/dialog/edittagdialog.h
 	gui/dialog/edittagdialog.ui
+	gui/dialog/edittagdialogmulti.cpp
+	gui/dialog/edittagdialogmulti.h
+	gui/dialog/edittagdialogmulti.ui
 	gui/dialog/newfiledialog.cpp
 	gui/dialog/newfiledialog.h
 	gui/dialog/newfiledialog.ui

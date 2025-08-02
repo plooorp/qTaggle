@@ -199,25 +199,28 @@ void File::check()
 DBResult File::addTag(const QSharedPointer<Tag>& tag)
 {
 	sqlite3_stmt* stmt;
-	std::string sql = "INSERT INTO file_tag(file_id, tag_id) VALUES(?, ?);";
-	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+	const char* sql = "INSERT INTO file_tag(file_id, tag_id) VALUES(?, ?);";
+	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
 	sqlite3_bind_int64(stmt, 2, tag->id());
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
-	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+	// ignore pk constraint error if the edge already exists
+	if (rc == SQLITE_DONE || rc == SQLITE_CONSTRAINT)
+	{
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
 	return DBResult();
 }
+	return DBResult(rc);
+}
 
 DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 {
 	sqlite3_stmt* stmt;
-	std::string sql = "DELETE FROM file_tag WHERE file_id = ? AND tag_id = ?;";
-	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+	const char* sql = "DELETE FROM file_tag WHERE file_id = ? AND tag_id = ?;";
+	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
 	sqlite3_bind_int64(stmt, 2, tag->id());
 	int rc = sqlite3_step(stmt);

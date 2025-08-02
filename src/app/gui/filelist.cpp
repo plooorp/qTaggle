@@ -9,6 +9,7 @@
 #include "app/file.h"
 #include "app/gui/dialog/newfiledialog.h"
 #include "app/gui/dialog/editfiledialog.h"
+#include "app/gui/dialog/editfiledialogmulti.h"
 
 FileList::FileList(QWidget* parent)
 	: QWidget(parent)
@@ -49,16 +50,15 @@ QList<QSharedPointer<File>> FileList::selectedFiles() const
 void FileList::editSelected()
 {
 	QList<QSharedPointer<File>> files = selectedFiles();
+	if (files.isEmpty())
+		return;
+	QDialog* dialog;
 	if (files.size() == 1)
-	{
-		EditFileDialog* dialog = new EditFileDialog(files.first(), this);
-		dialog->setAttribute(Qt::WA_DeleteOnClose);
-		dialog->show();
-	}
-	else if (files.size() > 1)
-	{
-		// multi edit
-	}
+		dialog = new EditFileDialog(files.first(), this);
+	else
+		dialog = new EditFileDialogMulti(files, this);
+	dialog->setAttribute(Qt::WA_DeleteOnClose);
+	dialog->show();
 }
 
 void FileList::checkSelected()
