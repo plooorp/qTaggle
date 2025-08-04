@@ -20,6 +20,8 @@ FileList::FileList(QWidget* parent)
 	
 	// context menu actions
 	connect(m_ui->actionAdd, &QAction::triggered, this, &FileList::actionAdd_triggered);
+	connect(db, &Database::opened, this, [this]() -> void { m_ui->actionAdd->setEnabled(true); });
+	connect(db, &Database::closed, this, [this]() -> void { m_ui->actionAdd->setEnabled(false); });
 	connect(m_ui->actionEdit, &QAction::triggered, this, &FileList::actionEdit_triggered);
 	connect(m_ui->actionCheck, &QAction::triggered, this, &FileList::actionCheck_triggered);
 	connect(m_ui->actionDelete, &QAction::triggered, this, &FileList::actionDelete_triggered);

@@ -4,7 +4,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-EditFileDialogMulti::EditFileDialogMulti(QList<QSharedPointer<File>>& files, QWidget* parent)
+EditFileDialogMulti::EditFileDialogMulti(const QList<QSharedPointer<File>>& files, QWidget* parent)
 	: QDialog(parent)
 	, m_ui(new Ui::EditFileDialogMulti)
 	, m_files(files)

@@ -56,20 +56,21 @@ void File::fetch()
 	sqlite3_finalize(stmt);
 }
 
-QSharedPointer<File> File::create(const QString& path, const QString& alias, const QString& comment, const QString& source)
+DBResult File::create(const QString& path, const QString& alias, const QString& comment, const QString& source, QSharedPointer<File>* out)
 {
-	QSharedPointer<File> file;
+	if (!db->isOpen())
+		return DBResult(DBResult::DatabaseClosed);
 	QFileInfo fileInfo(path);
-
 	QByteArray sha1 = sha1Digest(path);
 	if (sha1.isNull())
-		return file;
-	const std::string sql = \
-		"INSERT INTO file(path, name, dir, alias, state, comment, source, sha1)"
-		"VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+		return DBResult(DBResult::FileIOError, "Failed to calculate SHA1 digest");
+	const char* sql = R"(
+		INSERT INTO file(path, name, dir, alias, state, comment, source, sha1)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+	)";
 	db->begin();
 	sqlite3_stmt* stmt;
-	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 	QByteArray path_bytes = fileInfo.absoluteFilePath().toUtf8();
 	QByteArray name_bytes = fileInfo.fileName().toUtf8();
 	QByteArray dir_bytes = fileInfo.absoluteDir().absolutePath().toUtf8();
@@ -89,20 +90,21 @@ QSharedPointer<File> File::create(const QString& path, const QString& alias, con
 	if (rc != SQLITE_DONE)
 	{
 		db->rollback();
-		qCritical() << "Failed to create file:" << sqlite3_errstr(rc);
-		return file;
+		return DBResult(rc);
 	}
 	db->commit();
-	sqlite3_prepare_v2(db->con(), "SELECT * FROM file WHERE path = ?", -1, &stmt, nullptr);
-	sqlite3_bind_text(stmt, 1, path_bytes.constData(), -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) == SQLITE_ROW)
+	if (out)
 	{
-		file = QSharedPointer<File>(new File(stmt));
-		QWeakPointer<File> file_weak = file.toWeakRef();
-		m_instances.insert(file->id(), file_weak);
+		sqlite3_prepare_v2(db->con(), "SELECT * FROM file WHERE path = ?", -1, &stmt, nullptr);
+		sqlite3_bind_text(stmt, 1, path_bytes.constData(), -1, SQLITE_STATIC);
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
+			*out = QSharedPointer<File>(new File(stmt));
+			m_instances.insert((*out)->id(), out->toWeakRef());
+		}
+		sqlite3_finalize(stmt);
 	}
-	sqlite3_finalize(stmt);
-	return file;
+	return DBResult();
 }
 
 int File::remove(QList<QSharedPointer<File>>& files)
@@ -214,11 +216,11 @@ DBResult File::addTag(const QSharedPointer<Tag>& tag)
 	// ignore pk constraint error if the edge already exists
 	if (rc == SQLITE_DONE || rc == SQLITE_CONSTRAINT)
 	{
-	if (db->inTransaction())
-		db->addRecordToRollbackFetch(m_instances.value(m_id));
-	fetch();
-	return DBResult();
-}
+		if (db->inTransaction())
+			db->addRecordToRollbackFetch(m_instances.value(m_id));
+		fetch();
+		return DBResult();
+	}
 	return DBResult(rc);
 }
 

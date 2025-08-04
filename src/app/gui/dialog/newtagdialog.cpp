@@ -1,28 +1,31 @@
 #include "newtagdialog.h"
 #include "ui_newtagdialog.h"
 
+#include <QMessageBox>
+
 #include "app/tag.h"
 
 NewTagDialog::NewTagDialog(QWidget *parent, Qt::WindowFlags f)
-    : QDialog(parent, f)
-    , m_ui(new Ui::NewTagDialog)
+	: QDialog(parent, f)
+	, m_ui(new Ui::NewTagDialog)
 {
-    m_ui->setupUi(this);
+	m_ui->setupUi(this);
+
+	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &NewTagDialog::accept);
+	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &NewTagDialog::reject);
 }
 
 NewTagDialog::~NewTagDialog()
 {
-    delete m_ui;
+	delete m_ui;
 }
 
 void NewTagDialog::accept()
 {
-    QSharedPointer<Tag> tag = Tag::create(m_ui->nameLineEdit->text()
-        , m_ui->descriptionPlainTextEdit->toPlainText(), m_ui->urlsPlainTextListEdit->values());
-    QDialog::accept();
-}
-
-void NewTagDialog::reject()
-{
-    QDialog::reject();
+	if (DBResult error = Tag::create(m_ui->name->text(), m_ui->description->toPlainText(), m_ui->urls->values()))
+	{
+		QMessageBox::warning(this, tr("Failed to create tag"), error.msg);
+		return;
+	}
+	QDialog::accept();
 }

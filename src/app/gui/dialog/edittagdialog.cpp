@@ -10,10 +10,10 @@ EditTagDialog::EditTagDialog(const QSharedPointer<Tag>& tag, QWidget* parent)
 {
 	m_ui->setupUi(this);
 
+	setWindowTitle(tr("Editing %1").arg(m_tag->name()));
+
 	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &EditTagDialog::accept);
 	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &EditTagDialog::reject);
-
-	setWindowTitle("Edit " + m_tag->name());
 
 	m_ui->name->setText(m_tag->name());
 	m_ui->description->setPlainText(m_tag->description());

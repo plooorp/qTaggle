@@ -66,7 +66,7 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QLineEdit" name="path_lineEdit"/>
+                <widget class="QLineEdit" name="path"/>
                </item>
                <item>
                 <widget class="QPushButton" name="chooseFile_pushButton">
@@ -105,7 +105,7 @@
              </widget>
             </item>
             <item>
-             <widget class="PlainTextListEdit" name="pathList_plainTextEdit"/>
+             <widget class="PlainTextListEdit" name="paths"/>
             </item>
             <item>
              <widget class="QGroupBox" name="groupBox_4">
@@ -121,7 +121,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="ignoreHidden_checkBox">
+                <widget class="QCheckBox" name="ignoreHidden">
                  <property name="text">
                   <string>Ignore hidden files and directories</string>
                  </property>
@@ -165,7 +165,7 @@
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QLineEdit" name="name_lineEdit"/>
+                <widget class="QLineEdit" name="alias"/>
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_4">
@@ -175,7 +175,7 @@
                 </widget>
                </item>
                <item row="1" column="1">
-                <widget class="QLineEdit" name="source_lineEdit">
+                <widget class="QLineEdit" name="source">
                  <property name="toolTip">
                   <string>URL to the original source of this content.</string>
                  </property>
@@ -192,7 +192,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPlainTextEdit" name="comment_plainTextEdit"/>
+             <widget class="QPlainTextEdit" name="comment"/>
             </item>
            </layout>
           </widget>

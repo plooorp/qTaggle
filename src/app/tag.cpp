@@ -43,13 +43,15 @@ void Tag::fetch()
 	emit updated();
 }
 
-QSharedPointer<Tag> Tag::create(const QString& name, const QString& description, const QStringList& urls)
+DBResult Tag::create(const QString& name, const QString& description, const QStringList& urls
+	, QSharedPointer<Tag>* out)
 {
 	QSharedPointer<Tag> tag;
 	if (!db->isOpen())
-		return tag;
+		return DBResult(DBResult::DatabaseClosed);
 	QString name_norm = normalizeName(name);
-	QString description_norm = description.trimmed();
+	if (name_norm.isEmpty())
+		return DBResult(DBResult::ValueError, "Name cannot be empty");
 	QString urls_str;
 	if (urls.isEmpty())
 		urls_str = "";
@@ -64,36 +66,35 @@ QSharedPointer<Tag> Tag::create(const QString& name, const QString& description,
 	const std::string q = "INSERT INTO tag(name, description, urls) VALUES(?, ?, ?);";
 	db->begin();
 	sqlite3_stmt* stmt;
-	sqlite3_prepare_v2(db->con(), q.c_str(), -1, &stmt, nullptr);
-	QByteArray name_ba = name_norm.toUtf8();
-	QByteArray desc_ba = description_norm.toUtf8();
-	QByteArray urls_ba = urls_str.toUtf8();
-	sqlite3_bind_text(stmt, 1, name_ba.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, desc_ba.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, urls_ba.constData(), -1, SQLITE_STATIC);
+	const char* sql = "INSERT INTO tag(name, description, urls) VALUES(?, ?, ?);";
+	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
+	QByteArray name_bytes = name_norm.toUtf8();
+	QByteArray description_bytes = description.trimmed().toUtf8();
+	QByteArray urls_bytes = urls_str.toUtf8();
+	sqlite3_bind_text(stmt, 1, name_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, description_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, urls_bytes.constData(), -1, SQLITE_STATIC);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
 	{
 		db->rollback();
-		qCritical() << "Failed to create tag:" << sqlite3_errstr(rc);
-		return tag;
+		return DBResult(rc);
 	}
 	db->commit();
+	if (out)
+	{
 	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag WHERE name = ?", -1, &stmt, nullptr);
-	sqlite3_bind_text(stmt, 1, name_ba.constData(), -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 1, name_bytes.constData(), -1, SQLITE_STATIC);
 	if (sqlite3_step(stmt) == SQLITE_ROW)
 	{
-		tag = QSharedPointer<Tag>(new Tag(stmt));
-		m_instances.insert(tag->id(), tag.toWeakRef());
+			*out = QSharedPointer<Tag>(new Tag(stmt));
+			m_instances.insert((*out)->id(), out->toWeakRef());
 	}
 	sqlite3_finalize(stmt);
 	return tag;
 }
-
-QSharedPointer<Tag> Tag::create(const QString& name, const QString& description)
-{
-	return Tag::create(name, description, QStringList());
+	return DBResult();
 }
 
 QSharedPointer<Tag> Tag::create(const QString& name)

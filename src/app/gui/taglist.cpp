@@ -16,6 +16,8 @@ TagList::TagList(QWidget* parent)
 
 	// context menu actions
 	connect(m_ui->actionCreate, &QAction::triggered, this, &TagList::actionCreate_triggered);
+	connect(db, &Database::opened, this, [this]() -> void { m_ui->actionCreate->setEnabled(true); });
+	connect(db, &Database::closed, this, [this]() -> void { m_ui->actionCreate->setEnabled(false); });
 	connect(m_ui->actionEdit, &QAction::triggered, this, &TagList::actionEdit_triggered);
 	connect(m_ui->actionDelete, &QAction::triggered, this, &TagList::actionDelete_triggered);
 

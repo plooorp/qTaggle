@@ -39,6 +39,9 @@
    </item>
   </layout>
   <action name="actionAdd">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="document-open"/>
    </property>

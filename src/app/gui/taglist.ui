@@ -39,6 +39,9 @@
    </item>
   </layout>
   <action name="actionCreate">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset theme="QIcon::ThemeIcon::ListAdd"/>
    </property>

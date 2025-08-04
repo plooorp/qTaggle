@@ -1,9 +1,7 @@
 #pragma once
 
-#include <QWidget>
-#include <QtWidgets/QDialog>
-#include <QPointer>
-#include <QtWidgets/QFileDialog>
+#include <QDialog>
+#include <QDir>
 
 namespace Ui
 {
@@ -20,11 +18,10 @@ public:
 
 private slots:
 	void accept() override;
-	void reject() override;
 	void openFileDialog_file();
 	void openFileDialog_dir();
 
 private:
 	Ui::NewFileDialog* m_ui;
-	void create(const QDir& directory, bool recursive, bool ignoreHidden);
+	static void walkDirectory(const QDir& dir, QDir::Filters filters, bool recursive, QStringList& paths);
 };

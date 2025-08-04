@@ -32,6 +32,12 @@ Filters::Filters(QWidget* parent)
 	m_dir = new QTreeWidgetItem(this, QStringList{ "Locations" });
 
 	populate();
+	readSettings();
+}
+
+Filters::~Filters()
+{
+	writeSettings();
 }
 
 void Filters::populate()

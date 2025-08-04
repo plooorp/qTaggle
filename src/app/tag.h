@@ -17,9 +17,8 @@ class Tag final : public QObject, public Record
 
 public:
 	~Tag();
-	static QSharedPointer<Tag> create(const QString& name, const QString& description, const QStringList& urls);
-	static QSharedPointer<Tag> create(const QString& name, const QString& description);
-	static QSharedPointer<Tag> create(const QString& name);
+	static DBResult create(const QString& name, const QString& description = QString()
+		, const QStringList& urls = QStringList(), QSharedPointer<Tag>* out = nullptr);
 	static QSharedPointer<Tag> fromStmt(sqlite3_stmt* stmt);
 	static QSharedPointer<Tag> fromID(const int64_t id);
 	static QSharedPointer<Tag> fromName(const QString& name);

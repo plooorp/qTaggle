@@ -1,9 +1,9 @@
 #include "newfiledialog.h"
 #include "ui_newfiledialog.h"
 
-#include <QMessageBox>
-#include <QDir>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QMessageBox>
 #include "app/file.h"
 
 NewFileDialog::NewFileDialog(QWidget* parent, Qt::WindowFlags f)
@@ -33,12 +33,9 @@ void NewFileDialog::openFileDialog_file()
 	{
 		QStringList files = dialog.selectedFiles();
 		if (files.size() == 1)
-			m_ui->path_lineEdit->setText(files.first());
+			m_ui->path->setText(files.first());
 		else
-		{
-			//m_ui->pathLineEdit->clear();
-			m_ui->pathList_plainTextEdit->setValues(files);
-		}
+			m_ui->paths->setValues(files);
 	}
 }
 
@@ -50,61 +47,46 @@ void NewFileDialog::openFileDialog_dir()
 	if (dialog.exec())
 	{
 		QString dir = dialog.selectedFiles().first();
-		m_ui->path_lineEdit->setText(dir);
-		//QStringList fileNames;
-		//for (QString path : m_selectedFiles)
-		//	fileNames.append(QFileInfo(path).fileName());
-		//m_ui->name_lineEdit->setPlaceholderText(fileNames.join(", "));
-	}
-}
-
-void NewFileDialog::create(const QDir& directory, bool recursive, bool ignoreHidden)
-{
-	QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot;
-	if (!ignoreHidden)
-		filters |= QDir::Hidden;
-	for (QFileInfo entry : directory.entryInfoList(filters, QDir::Name | QDir::DirsFirst))
-	{
-		if (entry.isDir() && recursive)
-			create(QDir(entry.absoluteFilePath()), recursive, ignoreHidden);
-		else
-		{
-			QSharedPointer<File> file = File::create(entry.absoluteFilePath(), m_ui->name_lineEdit->text()
-				, m_ui->comment_plainTextEdit->toPlainText(), m_ui->source_lineEdit->text());
-			if (file)
-				for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
-					file->addTag(tag);
-		}
+		m_ui->path->setText(dir);
 	}
 }
 
 void NewFileDialog::accept()
 {
-	QStringList paths = m_ui->pathList_plainTextEdit->values();
-	if (!m_ui->path_lineEdit->text().trimmed().isEmpty())
-		paths.insert(0, m_ui->path_lineEdit->text());
+	QStringList paths = m_ui->paths->values();
+	if (!m_ui->path->text().trimmed().isEmpty())
+		paths.insert(0, m_ui->path->text());
 
-	for (QString path : paths)
+	QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot;
+	if (!m_ui->ignoreHidden->isChecked())
+		filters |= QDir::Hidden;
+
+	QStringList allPaths;
+	for (const QString& path : paths)
 	{
-		QFileInfo pathInfo(path);
-		if (pathInfo.isFile())
-		{
-			// single file
-			QSharedPointer<File> file = File::create(pathInfo.absoluteFilePath(), m_ui->name_lineEdit->text()
-				, m_ui->comment_plainTextEdit->toPlainText(), m_ui->source_lineEdit->text());
-			if (file)
-				for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
-					file->addTag(tag);
-			
-		}
-		else if (pathInfo.isDir())
-			create(QDir(path), m_ui->recursive_checkBox->isChecked(), m_ui->ignoreHidden_checkBox->isChecked());
+		if (QFileInfo(path).isFile())
+			allPaths.append(path);
+		else
+			walkDirectory(path, filters, m_ui->recursive_checkBox->isChecked(), allPaths);
+	}
+	for (const QString& path : allPaths)
+	{
+		QSharedPointer<File> file;
+		if (DBResult error = File::create(path, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
+			continue;
+		for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
+			file->addTag(tag);
 	}
 	QDialog::accept();
 }
 
-void NewFileDialog::reject()
+void NewFileDialog::walkDirectory(const QDir& dir, QDir::Filters filters, bool recursive, QStringList& paths)
 {
-	QDialog::reject();
+	for (QFileInfo entry : dir.entryInfoList(filters, QDir::Name | QDir::DirsFirst))
+	{
+		if (entry.isFile())
+			paths.append(entry.absoluteFilePath());
+		else if (recursive)
+			walkDirectory(QDir(entry.absoluteFilePath()), filters, recursive, paths);
+	}
 }
-

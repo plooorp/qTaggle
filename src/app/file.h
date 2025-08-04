@@ -17,7 +17,8 @@ class File final : public QObject, public Record
 
 public:
 	~File();
-	static QSharedPointer<File> create(const QString& path, const QString& alias, const QString& comment, const QString& source);
+	static DBResult create(const QString& path, const QString& alias = QString(), const QString& comment = QString()
+		, const QString& source = QString(), QSharedPointer<File>* out = nullptr);
 	static QSharedPointer<File> fromStmt(sqlite3_stmt* stmt);
 	static QList<QSharedPointer<File>> fromQuery(const QString& query);
 	void fetch();

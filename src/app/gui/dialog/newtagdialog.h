@@ -1,25 +1,23 @@
 #pragma once
 
-#include <QtWidgets/QDialog>
+#include <QDialog>
 
 namespace Ui
 {
-    class NewTagDialog;
+	class NewTagDialog;
 }
 
 class NewTagDialog : public QDialog
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit NewTagDialog(QWidget *parent = nullptr, Qt::WindowFlags f = { 0 });
-    ~NewTagDialog();
+	explicit NewTagDialog(QWidget *parent = nullptr, Qt::WindowFlags f = { 0 });
+	~NewTagDialog();
 
 private slots:
-    void accept() override;
-    void reject() override;
+	void accept() override;
 
 private:
-    Ui::NewTagDialog* m_ui;
+	Ui::NewTagDialog* m_ui;
 };
-

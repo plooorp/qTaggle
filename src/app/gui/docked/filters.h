@@ -8,6 +8,7 @@ class Filters : public QTreeWidget
 
 public:
 	explicit Filters(QWidget* parent);
+	~Filters();
 
 private slots:
 	void refresh();
