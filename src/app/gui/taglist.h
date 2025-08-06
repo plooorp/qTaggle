@@ -34,4 +34,6 @@ private:
 	TagTableModel* m_model;
 	void populate();
 	void depopulate();
+	void readSettings();
+	void writeSettings();
 };

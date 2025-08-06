@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QClipboard>
 #include <QInputDialog>
+#include <QSettings>
 
 #include "app/database.h"
 
@@ -46,10 +47,13 @@ TagSelect::TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
 	if (!tags.isEmpty())
 		setTags(tags);
 	m_ui->treeView->setModel(m_model);
+
+	readSettings();
 }
 
 TagSelect::~TagSelect()
 {
+	writeSettings();
 	delete m_ui;
 }
 
@@ -136,4 +140,18 @@ void TagSelect::exportTags()
 	for (const QSharedPointer<Tag> tag : m_model->tags())
 		tags.append(tag->name());
 	clipboard->setText(tags.join(' '));
+}
+
+void TagSelect::readSettings()
+{
+	QSettings settings;
+	const QByteArray headerState = settings.value("GUI/TagSelect/headerState", QByteArray()).toByteArray();
+	if (!headerState.isEmpty())
+		m_ui->treeView->header()->restoreState(headerState);
+}
+
+void TagSelect::writeSettings()
+{
+	QSettings settings;
+	settings.setValue("GUI/TagSelect/headerState", m_ui->treeView->header()->saveState());
 }

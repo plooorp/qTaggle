@@ -32,4 +32,6 @@ private slots:
 private:
     Ui::TagSelect *m_ui;
     TagTableModel* m_model;
+    void readSettings();
+    void writeSettings();
 };

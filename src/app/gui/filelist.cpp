@@ -4,6 +4,7 @@
 #include <QVBoxLayout>
 #include <QMenu>
 #include <QMessageBox>
+#include <QSettings>
 
 #include "app/database.h"
 #include "app/file.h"
@@ -34,10 +35,13 @@ FileList::FileList(QWidget* parent)
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &FileList::editSelected);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &FileList::showContextMenu);
 	connect(m_ui->treeView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]()-> void {emit selectionChanged(); });
+
+	readSettings();
 }
 
 FileList::~FileList()
 {
+	writeSettings();
 	delete m_ui;
 }
 
@@ -132,4 +136,18 @@ void FileList::showContextMenu(const QPoint& pos)
 		menu->addAction(m_ui->actionAdd);
 	}
 	menu->popup(QCursor::pos());
+}
+
+void FileList::readSettings()
+{
+	QSettings settings;
+	const QByteArray headerState = settings.value("GUI/FileList/headerState").toByteArray();
+	if (!headerState.isEmpty())
+		m_ui->treeView->header()->restoreState(headerState);
+}
+
+void FileList::writeSettings()
+{
+	QSettings settings;
+	settings.setValue("GUI/FileList/headerState", m_ui->treeView->header()->saveState());
 }

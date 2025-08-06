@@ -3,6 +3,7 @@
 
 #include <QMenu>
 #include <QMessageBox>
+#include <QSettings>
 #include "app/gui/dialog/edittagdialog.h"
 #include "app/gui/dialog/edittagdialogmulti.h"
 #include "app/gui/dialog/newtagdialog.h"
@@ -29,10 +30,13 @@ TagList::TagList(QWidget* parent)
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &TagList::editSelected);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &TagList::showContextMenu);
 	connect(m_ui->treeView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]()-> void {emit selectionChanged(); });
+
+	readSettings();
 }
 
 TagList::~TagList()
 {
+	writeSettings();
 	delete m_ui;
 }
 
@@ -116,4 +120,18 @@ void TagList::showContextMenu(const QPoint& pos)
 		menu->addAction(m_ui->actionCreate);
 	}
 	menu->popup(QCursor::pos());
+}
+
+void TagList::readSettings()
+{
+	QSettings settings;
+	const QByteArray headerState = settings.value("GUI/TagList/headerState", QByteArray()).toByteArray();
+	if (!headerState.isEmpty())
+		m_ui->treeView->header()->restoreState(headerState);
+}
+
+void TagList::writeSettings()
+{
+	QSettings settings;
+	settings.setValue("GUI/TagList/headerState", m_ui->treeView->header()->saveState());
 }

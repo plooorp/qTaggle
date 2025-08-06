@@ -131,3 +131,36 @@ void TagTableModel::clear()
 	m_tags.clear();
 	endRemoveRows();
 }
+
+void TagTableModel::sort(int column, Qt::SortOrder order)
+{
+	if (column == ID)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->id() < b->id(); })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->id() > b->id(); });
+	else if (column == Name)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->name().compare(b->name(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->name().compare(b->name(), Qt::CaseInsensitive) > 0; });
+	else if (column == URLs)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->urls().length() < b->urls().length(); })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->urls().length() > b->urls().length(); });
+	else if (column == Description)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->description().compare(b->description(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->description().compare(b->description(), Qt::CaseInsensitive) > 0; });
+	else if (column == Degree)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->degree() < b->degree(); })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->degree() > b->degree(); });
+	else if (column == Created)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->created().toSecsSinceEpoch() < b->created().toSecsSinceEpoch(); })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->created().toSecsSinceEpoch() > b->created().toSecsSinceEpoch(); });
+	else if (column == Modified)
+		order == Qt::AscendingOrder
+			? std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->modified().toSecsSinceEpoch() < b->modified().toSecsSinceEpoch(); })
+			: std::sort(m_tags.begin(), m_tags.end(), [](const QSharedPointer<Tag>& a, const QSharedPointer<Tag>& b) -> bool { return a->modified().toSecsSinceEpoch() > b->modified().toSecsSinceEpoch(); });
+	emit layoutChanged();
+}

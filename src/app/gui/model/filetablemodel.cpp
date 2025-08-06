@@ -1,6 +1,8 @@
 #include "filetablemodel.h"
 
 #include <QIcon>
+#include <QStyle>
+#include <QApplication>
 
 FileTableModel::FileTableModel(QObject* parent)
 	: QAbstractTableModel(parent)
@@ -23,7 +25,6 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 		case Column::ID: return QString::number(file->id());
 		case Column::Name: return file->name();
 		case Column::Path: return file->path();
-		case Column::State: return File::stateString(file->state());
 		case Column::Sha1digest: return QString(file->sha1().toHex());
 		case Column::Comment: return file->comment();
 		case Column::Source: return file->source();
@@ -50,10 +51,16 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 		case Column::ID: return Qt::AlignRight;
 		}
 	}
-	//if (role == Qt::DecorationRole)
-	//{
-	//	return QIcon::fromTheme(QIcon::ThemeIcon::);
-	//}
+	if (role == Qt::DecorationRole && index.column() == Name)
+	{
+		switch (file->state())
+		{
+		case File::Ok: return qApp->style()->standardIcon(QStyle::SP_DialogApplyButton);
+		case File::ChecksumChanged: return QIcon::fromTheme(QIcon::ThemeIcon::SyncError);
+		case File::FileMissing: return qApp->style()->standardIcon(QStyle::SP_MessageBoxWarning);
+		case File::Error: return qApp->style()->standardIcon(QStyle::SP_MessageBoxCritical);
+		}
+	}
 
 	return QVariant();
 }
@@ -64,7 +71,6 @@ QVariant FileTableModel::headerData(int section, Qt::Orientation orientation, in
 	{
 		switch (section)
 		{
-			// Column::State
 		case Column::ID: return tr("ID");
 		case Column::Name: return tr("Name");
 		case Column::Path: return tr("Path");
@@ -89,7 +95,7 @@ int FileTableModel::columnCount(const QModelIndex& parent) const
 {
 	if (parent.isValid())
 		return 0;
-	return 9;
+	return 8;
 }
 
 void FileTableModel::addFile(const QSharedPointer<File> file)
@@ -127,4 +133,41 @@ void FileTableModel::clear()
 	beginRemoveRows(QModelIndex(), 0, m_files.size() - 1);
 	m_files.clear();
 	endRemoveRows();
+}
+
+void FileTableModel::sort(int column, Qt::SortOrder order)
+{
+	if (column == Name)
+		order == Qt::AscendingOrder
+		? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->name().compare(b->name(), Qt::CaseInsensitive) < 0; })
+		: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->name().compare(b->name(), Qt::CaseInsensitive) > 0; });
+	else if (column == ID)
+		order == Qt::AscendingOrder
+		? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->id() < b->id(); })
+		: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->id() > b->id(); });
+	else if (column == Path)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->path().compare(b->path(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->path().compare(b->path(), Qt::CaseInsensitive) > 0; });
+	else if (column == Comment)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->comment().compare(b->comment(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->comment().compare(b->comment(), Qt::CaseInsensitive) > 0; });
+	else if (column == Source)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->source().compare(b->source(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->source().compare(b->source(), Qt::CaseInsensitive) > 0; });
+	else if (column == Sha1digest)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->sha1().toHex().compare(b->sha1().toHex(), Qt::CaseInsensitive) < 0; })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->sha1().toHex().compare(b->sha1().toHex(), Qt::CaseInsensitive) > 0; });
+	else if (column == Created)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->created().toSecsSinceEpoch() < b->created().toSecsSinceEpoch(); })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->created().toSecsSinceEpoch() > b->created().toSecsSinceEpoch(); });
+	else if (column == Modified)
+		order == Qt::AscendingOrder
+			? std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->modified().toSecsSinceEpoch() < b->modified().toSecsSinceEpoch(); })
+			: std::sort(m_files.begin(), m_files.end(), [](const QSharedPointer<File>& a, const QSharedPointer<File>& b) -> bool { return a->modified().toSecsSinceEpoch() > b->modified().toSecsSinceEpoch(); });
+	emit layoutChanged();
 }

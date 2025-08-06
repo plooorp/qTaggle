@@ -18,6 +18,7 @@ public:
 	QSharedPointer<File> fileAt(int row) const;
 	bool contains(const QSharedPointer<File>& file) const;
 	void clear();
+	void sort(int column, Qt::SortOrder order) override;
 
 private:
 	QList<QSharedPointer<File>> m_files;
@@ -26,7 +27,6 @@ private:
 		Name = 0,
 		ID,
 		Path,
-		State,
 		Comment,
 		Source,
 		Sha1digest,

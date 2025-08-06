@@ -19,6 +19,7 @@ public:
 	QList<QSharedPointer<Tag>> tags();
 	bool contains(const QSharedPointer<Tag>& tag) const;
 	void clear();
+	void sort(int column, Qt::SortOrder order) override;
 
 private:
 	QList<QSharedPointer<Tag>> m_tags;
