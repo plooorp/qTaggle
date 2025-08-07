@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
 	gui/docked/properties.h
 	gui/helper/plaintextlistedit.cpp
 	gui/helper/plaintextlistedit.h
+	gui/helper/taglineedit.cpp
+	gui/helper/taglineedit.h
 	gui/helper/tagselect.cpp
 	gui/helper/tagselect.h
 	gui/helper/tagselect.ui

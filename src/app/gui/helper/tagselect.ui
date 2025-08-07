@@ -37,6 +37,9 @@
      <property name="rootIsDecorated">
       <bool>false</bool>
      </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
    <item>
@@ -55,7 +58,7 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QLineEdit" name="lineEdit">
+       <widget class="TagLineEdit" name="lineEdit">
         <property name="text">
          <string/>
         </property>
@@ -111,6 +114,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TagLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>app/gui/helper/taglineedit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

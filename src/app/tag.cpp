@@ -1,7 +1,7 @@
 #include "tag.h"
 
-#include <QDebug>
 #include <QUrl>
+#include "app/globals.h"
 
 Tag::Tag(sqlite3_stmt* stmt)
 	: QObject(nullptr)
@@ -46,7 +46,6 @@ void Tag::fetch()
 DBResult Tag::create(const QString& name, const QString& description, const QStringList& urls
 	, QSharedPointer<Tag>* out)
 {
-	QSharedPointer<Tag> tag;
 	if (!db->isOpen())
 		return DBResult(DBResult::DatabaseClosed);
 	QString name_norm = normalizeName(name);
@@ -63,7 +62,6 @@ DBResult Tag::create(const QString& name, const QString& description, const QStr
 		urls_str = urls_cpy.join(';');
 	}
 
-	const std::string q = "INSERT INTO tag(name, description, urls) VALUES(?, ?, ?);";
 	db->begin();
 	sqlite3_stmt* stmt;
 	const char* sql = "INSERT INTO tag(name, description, urls) VALUES(?, ?, ?);";
@@ -84,22 +82,16 @@ DBResult Tag::create(const QString& name, const QString& description, const QStr
 	db->commit();
 	if (out)
 	{
-	sqlite3_prepare_v2(db->con(), "SELECT * FROM tag WHERE name = ?", -1, &stmt, nullptr);
+		sqlite3_prepare_v2(db->con(), "SELECT * FROM tag WHERE name = ?", -1, &stmt, nullptr);
 		sqlite3_bind_text(stmt, 1, name_bytes.constData(), -1, SQLITE_STATIC);
-	if (sqlite3_step(stmt) == SQLITE_ROW)
-	{
+		if (sqlite3_step(stmt) == SQLITE_ROW)
+		{
 			*out = QSharedPointer<Tag>(new Tag(stmt));
 			m_instances.insert((*out)->id(), out->toWeakRef());
+		}
+		sqlite3_finalize(stmt);
 	}
-	sqlite3_finalize(stmt);
-	return tag;
-}
 	return DBResult();
-}
-
-QSharedPointer<Tag> Tag::create(const QString& name)
-{
-	return Tag::create(name, QString(), QStringList());
 }
 
 QSharedPointer<Tag> Tag::fromStmt(sqlite3_stmt* stmt)
@@ -156,32 +148,35 @@ QList<QSharedPointer<Tag>> Tag::fromQuery(const QString& query)
 	QList<QSharedPointer<Tag>> tags;
 	if (!db->isOpen())
 		return tags;
-	QString query_trimmed = query.trimmed();
-	QByteArray query_bytes = query_trimmed.toUtf8();
-	sqlite3_stmt* stmt;
-	if (query_trimmed.isEmpty())
+	if (query.trimmed().isEmpty())
+	{
+		sqlite3_stmt* stmt;
 		sqlite3_prepare_v2(db->con(), "SELECT * FROM tag;", -1, &stmt, nullptr);
+		while (sqlite3_step(stmt) == SQLITE_ROW)
+			tags.append(fromStmt(stmt));
+		sqlite3_finalize(stmt);
+	}
 	else
 	{
-		std::string sql = R"(
-			SELECT * FROM tag
-			WHERE name LIKE concat('%', ?, '%')
-			ORDER BY
-				CASE
-					WHEN name LIKE concat(?, '%') THEN 1
-					WHEN name LIKE concat('%', ?, '%') THEN 2
-					ELSE 3
-				END
-				, degree DESC;
+		QStringList query_parts = query.split(' ', Qt::SkipEmptyParts);
+		for (QString& part : query_parts)
+			part = part + u"*"_s;
+		QString query_norm = query_parts.join(' ');
+		QByteArray query_bytes = query_norm.toUtf8();
+		const char* sql = R"(
+			SELECT * FROM tag WHERE id IN (
+				SELECT ROWID FROM tag_search
+				WHERE tag_search MATCH ?
+				ORDER BY bm25(tag_search, 10.0, 5.0)
+			);
 		)";
-		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
+		sqlite3_stmt* stmt;
+		sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 		sqlite3_bind_text(stmt, 1, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 2, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 3, query_bytes.constData(), -1, SQLITE_STATIC);
+		while (sqlite3_step(stmt) == SQLITE_ROW)
+			tags.append(fromStmt(stmt));
+		sqlite3_finalize(stmt);
 	}
-	while (sqlite3_step(stmt) == SQLITE_ROW)
-		tags.append(fromStmt(stmt));
-	sqlite3_finalize(stmt);
 	return tags;
 }
 

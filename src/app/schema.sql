@@ -28,6 +28,25 @@ CREATE TABLE tag(
 
 CREATE INDEX tag_name ON tag(name);
 
+CREATE VIRTUAL TABLE tag_search USING fts5(name, description, content='tag', content_rowid='id');
+CREATE TRIGGER tag_ai AFTER INSERT ON tag
+BEGIN
+	INSERT INTO tag_search(rowid, name, description)
+	VALUES (NEW.id, NEW.name, NEW.description);
+END;
+CREATE TRIGGER tag_ad AFTER DELETE ON tag
+BEGIN
+	INSERT INTO tag_search(tag_search, rowid, name, description)
+	VALUES ('delete', OLD.id, old.name, old.description);
+END;
+CREATE TRIGGER tag_au AFTER UPDATE ON tag
+BEGIN
+	INSERT INTO tag_search(tag_search, rowid, name, description)
+	VALUES ('delete', OLD.id, OLD.name, OLD.description);
+	INSERT INTO tag_search(rowid, name, description)
+	VALUES (NEW.id, NEW.name, NEW.description);
+END;
+
 CREATE TABLE file_tag(
 	file_id INTEGER NOT NULL,
 	tag_id  INTEGER NOT NULL,

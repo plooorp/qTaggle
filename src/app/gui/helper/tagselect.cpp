@@ -30,19 +30,27 @@ TagSelect::TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
 	connect(m_ui->buttonImport, &QPushButton::clicked, this, &TagSelect::importTags);
 	connect(m_ui->buttonExport, &QPushButton::clicked, this, &TagSelect::exportTags);
 
-	QCompleter* completer = new QCompleter(this);
-	completer->setCaseSensitivity(Qt::CaseInsensitive);
-	completer->setCompletionMode(QCompleter::PopupCompletion);
-	completer->setModelSorting(QCompleter::CaseInsensitivelySortedModel);
-	QStringList names;
-	sqlite3_stmt* stmt;
-	sqlite3_prepare_v2(db->con(), "SELECT name FROM tag ORDER BY name ASC;", -1, &stmt, nullptr);
-	while (sqlite3_step(stmt) == SQLITE_ROW)
-		names.append(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 0), sqlite3_column_bytes(stmt, 0)));
-	sqlite3_finalize(stmt);
-	QStringListModel* completerModel = new QStringListModel(names, completer);
-	completer->setModel(completerModel);
-	m_ui->lineEdit->setCompleter(completer);
+	//TagCompleterModel* suggestions = new TagCompleterModel();
+	//QCompleter* completer = new QCompleter(suggestions, this);
+	//completer->setCompletionMode(QCompleter::UnfilteredPopupCompletion);
+	//m_ui->lineEdit->setCompleter(completer);
+	//connect(m_ui->lineEdit, &QLineEdit::textEdited, this
+	//	, [this, suggestions]() -> void { suggestions->updateSuggestions(m_ui->lineEdit->text().split(' ').last()); });
+
+	//TagSuggestions* suggestions = new TagSuggestions();
+	//QCompleter* completer = new QCompleter(suggestions, this);
+	//completer->setCaseSensitivity(Qt::CaseInsensitive);
+	//completer->setCompletionMode(QCompleter::PopupCompletion);
+	//completer->setModelSorting(QCompleter::CaseInsensitivelySortedModel);
+	//QStringList names;
+	//sqlite3_stmt* stmt;
+	//sqlite3_prepare_v2(db->con(), "SELECT name FROM tag ORDER BY name ASC;", -1, &stmt, nullptr);
+	//while (sqlite3_step(stmt) == SQLITE_ROW)
+	//	names.append(QString::fromUtf8((const char*)sqlite3_column_text(stmt, 0), sqlite3_column_bytes(stmt, 0)));
+	//sqlite3_finalize(stmt);
+	//QStringListModel* completerModel = new QStringListModel(names, completer);
+	//completer->setModel(completerModel);
+	//m_ui->lineEdit->setCompleter(completer);
 
 	if (!tags.isEmpty())
 		setTags(tags);
