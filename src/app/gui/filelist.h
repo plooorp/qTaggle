@@ -1,8 +1,6 @@
 #pragma once
 
 #include <QWidget>
-#include <QTreeView>
-#include <QLineEdit>
 
 #include "app/gui/model/filetablemodel.h"
 
@@ -37,7 +35,6 @@ private:
 	Ui::FileList* m_ui;
 	FileTableModel* m_model;
 	void populate();
-	void depopulate();
 	void readSettings();
 	void writeSettings();
 };

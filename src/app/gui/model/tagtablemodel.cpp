@@ -4,7 +4,9 @@
 
 TagTableModel::TagTableModel(QObject* parent)
 	: QAbstractTableModel(parent)
-{}
+{
+	connect(db, &Database::closed, this, &TagTableModel::clear);
+}
 
 QVariant TagTableModel::data(const QModelIndex& index, int role) const
 {

@@ -29,7 +29,6 @@ FileList::FileList(QWidget* parent)
 	connect(m_ui->actionDelete, &QAction::triggered, this, &FileList::actionDelete_triggered);
 
 	connect(db, &Database::opened, this, &FileList::populate);
-	connect(db, &Database::closed, this, &FileList::depopulate);
 	connect(m_ui->lineEdit, &QLineEdit::textChanged, this, &FileList::populate);
 
 	m_ui->treeView->setModel(m_model);

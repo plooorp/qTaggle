@@ -33,7 +33,6 @@ private:
 	Ui::TagList* m_ui;
 	TagTableModel* m_model;
 	void populate();
-	void depopulate();
 	void readSettings();
 	void writeSettings();
 };

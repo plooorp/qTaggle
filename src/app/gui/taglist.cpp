@@ -23,7 +23,6 @@ TagList::TagList(QWidget* parent)
 	connect(m_ui->actionDelete, &QAction::triggered, this, &TagList::actionDelete_triggered);
 
 	connect(db, &Database::opened, this, &TagList::populate);
-	connect(db, &Database::closed, this, &TagList::depopulate);
 	connect(m_ui->lineEdit, &QLineEdit::textChanged, this, &TagList::populate);
 
 	m_ui->treeView->setModel(m_model);
@@ -45,11 +44,6 @@ void TagList::populate()
 	m_model->clear();
 	for (QSharedPointer<Tag> tag : Tag::fromQuery(m_ui->lineEdit->text()))
 		m_model->addTag(tag);
-}
-
-void TagList::depopulate()
-{
-	m_model->clear();
 }
 
 QList<QSharedPointer<Tag>> TagList::selectedTags() const

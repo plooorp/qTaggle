@@ -6,7 +6,9 @@
 
 FileTableModel::FileTableModel(QObject* parent)
 	: QAbstractTableModel(parent)
-{}
+{
+	connect(db, &Database::closed, this, &FileTableModel::clear);
+}
 
 QVariant FileTableModel::data(const QModelIndex& index, int role) const
 {
