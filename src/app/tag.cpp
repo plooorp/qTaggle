@@ -180,29 +180,19 @@ QList<QSharedPointer<Tag>> Tag::fromQuery(const QString& query)
 	return tags;
 }
 
-int Tag::remove(QList<QSharedPointer<Tag>> tags)
+DBResult Tag::remove()
 {
 	if (!db->isOpen())
-		return SQLITE_CANTOPEN;
-	int rc = 0;
-	db->begin();
+		return DBResult(DBResult::DatabaseClosed);
 	sqlite3_stmt* stmt;
-	std::string sql = "DELETE FROM tag WHERE id = ?;";
-	for (QSharedPointer<Tag> tag : tags)
-	{
-		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
-		sqlite3_bind_int64(stmt, 1, tag->m_id);
-		rc = sqlite3_step(stmt);
+	sqlite3_prepare_v2(db->con(), "DELETE FROM tag WHERE id = ?;", -1, &stmt, nullptr);
+	sqlite3_bind_int64(stmt, 1, m_id);
+	int rc = sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 		if (rc != SQLITE_DONE)
-		{
-			db->rollback();
-			qCritical() << "Failed to delete tag" << tag->m_name << ":" << sqlite3_errstr(rc);
-			return rc;
-		}
-	}
-	db->commit();
-	return rc;
+		return DBResult(rc);
+	emit deleted();
+	return DBResult();
 }
 
 DBResult Tag::setName(const QString& name)

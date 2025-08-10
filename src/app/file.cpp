@@ -107,28 +107,19 @@ DBResult File::create(const QString& path, const QString& alias, const QString& 
 	return DBResult();
 }
 
-int File::remove(QList<QSharedPointer<File>>& files)
+DBResult File::remove()
 {
 	if (!db->isOpen())
-		return SQLITE_CANTOPEN;
-	int rc = 0;
-	db->begin();
+		return DBResult(DBResult::DatabaseClosed);
 	sqlite3_stmt* stmt;
-	std::string sql = "DELETE FROM file WHERE id = ?;";
-	for (QSharedPointer<File> file : files)
-	{
-		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
-		sqlite3_bind_int64(stmt, 1, file->m_id);
+	sqlite3_prepare_v2(db->con(), "DELETE FROM file WHERE id = ?;", -1, &stmt, nullptr);
+	sqlite3_bind_int64(stmt, 1, m_id);
 		int rc = sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
 		if (rc != SQLITE_DONE)
-		{
-			db->rollback();
-			qCritical() << "Failed to delete file:" << sqlite3_errstr(rc);
-			return rc;
-		}
-	}
-	return rc;
+		return DBResult(rc);
+	emit deleted();
+	return DBResult();
 }
 
 QSharedPointer<File> File::fromStmt(sqlite3_stmt* stmt)
@@ -214,15 +205,17 @@ DBResult File::addTag(const QSharedPointer<Tag>& tag)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	// ignore pk constraint error if the edge already exists
-	if (rc == SQLITE_DONE || rc == SQLITE_CONSTRAINT)
+	if (rc != SQLITE_DONE && rc != SQLITE_CONSTRAINT)
+		return DBResult(rc);
+	if (db->inTransaction())
 	{
-		if (db->inTransaction())
 			db->addRecordToRollbackFetch(m_instances.value(m_id));
+		db->addRecordToRollbackFetch(tag);
+	}
 		fetch();
+	tag->fetch();
 		return DBResult();
 	}
-	return DBResult(rc);
-}
 
 DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 {
@@ -236,8 +229,12 @@ DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 	if (rc != SQLITE_DONE)
 		return DBResult(rc);
 	if (db->inTransaction())
+	{
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
+		db->addRecordToRollbackFetch(tag);
+	}
 	fetch();
+	tag->fetch();
 	return DBResult();
 }
 

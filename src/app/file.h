@@ -1,12 +1,9 @@
 #pragma once
 
 #include <QObject>
-#include <QList>
 #include <QDir>
 #include <QHash>
-#include <QString>
 #include <QDateTime>
-#include <QSharedPointer>
 
 #include "app/database.h"
 #include "app/filetag.h"
@@ -23,7 +20,6 @@ public:
 	static QList<QSharedPointer<File>> fromQuery(const QString& query);
 	void fetch();
 	void check();
-	static int remove(QList<QSharedPointer<File>>& files);
 	enum State
 	{
 		Ok = 0,
@@ -49,9 +45,11 @@ public:
 	QDateTime created() const;
 	QDateTime modified() const;
 	QList<FileTag> tags() const;
+	DBResult remove();
 
 signals:
 	void updated();
+	void deleted();
 
 private:
 	File(sqlite3_stmt* stmt);

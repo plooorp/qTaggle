@@ -13,8 +13,9 @@ public:
 	int columnCount(const QModelIndex& parent) const override;
 	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-	void addTag(const QSharedPointer<Tag> tag);
-	void removeTag(int row);
+	void addTag(const QSharedPointer<Tag>& tag);
+	bool removeTag(const QSharedPointer<Tag>& tag);
+	bool removeTag(int row);
 	QSharedPointer<Tag> tagAt(int row) const;
 	QList<QSharedPointer<Tag>> tags();
 	bool contains(const QSharedPointer<Tag>& tag) const;

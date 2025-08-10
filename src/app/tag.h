@@ -24,9 +24,6 @@ public:
 	static QSharedPointer<Tag> fromName(const QString& name);
 	static QList<QSharedPointer<Tag>> fromQuery(const QString& query);
 	void fetch();
-	static int remove(QList<QSharedPointer<Tag>> tags);
-	//int remove();
-	//static void cleanup();
 	int64_t id() const;
 	QString name() const;
 	DBResult setName(const QString& name);
@@ -37,11 +34,11 @@ public:
 	int64_t degree() const;
 	QDateTime created() const;
 	QDateTime modified() const;
-	//friend std::ostream& operator<<(std::ostream& os, const Tag& tag);
-	//inline bool operator==(const Tag& l, const Tag& r);
+	DBResult remove();
 
 signals:
 	void updated();
+	void deleted();
 
 private:
 	Tag(sqlite3_stmt* stmt);

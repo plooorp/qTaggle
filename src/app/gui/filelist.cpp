@@ -18,6 +18,7 @@ FileList::FileList(QWidget* parent)
 	, m_model(new FileTableModel(this))
 {
 	m_ui->setupUi(this);
+	m_ui->treeView->setRootIsDecorated(false);
 	
 	// context menu actions
 	connect(m_ui->actionAdd, &QAction::triggered, this, &FileList::actionAdd_triggered);
@@ -78,9 +79,14 @@ void FileList::deleteSelected()
 	QList<QSharedPointer<File>> files = selectedFiles();
 	if (files.isEmpty())
 		return;
-	int btn = QMessageBox::question(this, qApp->applicationName(), tr("Are you sure you want to delete the selected file(s)?"));
+	QMessageBox::StandardButton btn = QMessageBox::question(this, tr("Confirm action")
+		, files.size() > 1
+			? tr("Are you sure you want to delete %1 files? This will not delete the files from disk.").arg(files.size())
+			: tr("Are you sure you want to delete '%1'? This will not delete the file from disk.").arg(files.first()->name())
+	);
 	if (btn == QMessageBox::Yes)
-		File::remove(files);
+		for (QSharedPointer<File>& file : files)
+			file->remove();
 }
 
 void FileList::populate()

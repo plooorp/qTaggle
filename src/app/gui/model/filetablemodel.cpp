@@ -98,20 +98,36 @@ int FileTableModel::columnCount(const QModelIndex& parent) const
 	return 8;
 }
 
-void FileTableModel::addFile(const QSharedPointer<File> file)
+void FileTableModel::addFile(const QSharedPointer<File>& file)
 {
+	connect(file.get(), &File::deleted, this, [this, file]() -> void { removeFile(file); });
 	beginInsertRows(QModelIndex(), m_files.size(), m_files.size());
 	m_files.append(file);
 	endInsertRows();
 }
 
-void FileTableModel::removeFile(int row)
+bool FileTableModel::removeFile(const QSharedPointer<File>& file)
+{
+	if (qsizetype i = m_files.indexOf(file); i >= 0)
+	{
+		disconnect(m_files[i].get(), &File::deleted, this, nullptr);
+		beginRemoveRows(QModelIndex(), i, i);
+		m_files.removeAt(i);
+		endRemoveRows();
+		return true;
+	}
+	return false;
+}
+
+bool FileTableModel::removeFile(int row)
 {
 	if (row < 0 || row >= m_files.size())
-		return;
+		return false;
+	disconnect(m_files[row].get(), &File::deleted, this, nullptr);
 	beginRemoveRows(QModelIndex(), row, row);
 	m_files.removeAt(row);
 	endRemoveRows();
+	return true;
 }
 
 QSharedPointer<File> FileTableModel::fileAt(int row) const
@@ -130,9 +146,8 @@ void FileTableModel::clear()
 {
 	if (m_files.isEmpty())
 		return;
-	beginRemoveRows(QModelIndex(), 0, m_files.size() - 1);
-	m_files.clear();
-	endRemoveRows();
+	for (int i = m_files.size() - 1; i >= 0; i--)
+		removeFile(i);
 }
 
 void FileTableModel::sort(int column, Qt::SortOrder order)

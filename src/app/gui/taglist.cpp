@@ -79,9 +79,14 @@ void TagList::deleteSelected()
 	QList<QSharedPointer<Tag>> tags = selectedTags();
 	if (tags.isEmpty())
 		return;
-	int btn = QMessageBox::question(this, qApp->applicationName(), tr("Are you sure you want to delete the selected tag(s)?"));
+	QMessageBox::StandardButton btn = QMessageBox::question(this, tr("Confirm action")
+		, tags.size() > 1
+			? tr("Are you sure you want to delete %1 tags?").arg(tags.size())
+			: tr("Are you sure you want to delete '%1'?").arg(tags.first()->name())
+	);
 	if (btn == QMessageBox::Yes)
-		Tag::remove(tags);
+		for (QSharedPointer<Tag>& tag : tags)
+			tag->remove();
 }
 
 void TagList::actionCreate_triggered()

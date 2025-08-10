@@ -90,20 +90,36 @@ int TagTableModel::columnCount(const QModelIndex& parent) const
 	return 7;
 }
 
-void TagTableModel::addTag(const QSharedPointer<Tag> tag)
+void TagTableModel::addTag(const QSharedPointer<Tag>& tag)
 {
+	connect(tag.get(), &Tag::deleted, this, [this, tag]() -> void { removeTag(tag); });
 	beginInsertRows(QModelIndex(), m_tags.count(), m_tags.count());
 	m_tags.append(tag);
 	endInsertRows();
 }
 
-void TagTableModel::removeTag(int row)
+bool TagTableModel::removeTag(const QSharedPointer<Tag>& tag)
 {
-	if (row < 0 || row >= m_tags.count())
-		return;
+	if (qsizetype i = m_tags.indexOf(tag); i >= 0)
+	{
+		disconnect(m_tags[i].get(), &Tag::deleted, this, nullptr);
+		beginRemoveRows(QModelIndex(), i, i);
+		m_tags.removeAt(i);
+		endRemoveRows();
+		return true;
+	}
+	return false;
+}
+
+bool TagTableModel::removeTag(int row)
+{
+	if (row < 0 || row >= m_tags.size())
+		return false;
+	disconnect(m_tags[row].get(), &Tag::deleted, this, nullptr);
 	beginRemoveRows(QModelIndex(), row, row);
 	m_tags.removeAt(row);
 	endRemoveRows();
+	return true;
 }
 
 QSharedPointer<Tag> TagTableModel::tagAt(int row) const
@@ -127,9 +143,8 @@ void TagTableModel::clear()
 {
 	if (m_tags.isEmpty())
 		return;
-	beginRemoveRows(QModelIndex(), 0, m_tags.count() - 1);
-	m_tags.clear();
-	endRemoveRows();
+	for (int i = m_tags.size() - 1; i >= 0; i--)
+		removeTag(i);
 }
 
 void TagTableModel::sort(int column, Qt::SortOrder order)
