@@ -4,7 +4,9 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include "app/file.h"
+#include "app/globals.h"
 
 NewFileDialog::NewFileDialog(QWidget* parent, Qt::WindowFlags f)
 	: QDialog(parent, f)
@@ -60,23 +62,44 @@ void NewFileDialog::accept()
 	QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot;
 	if (!m_ui->ignoreHidden->isChecked())
 		filters |= QDir::Hidden;
-
-	QStringList allPaths;
+	QStringList filePathList;
 	for (const QString& path : paths)
 	{
 		if (QFileInfo(path).isFile())
-			allPaths.append(path);
+			filePathList.append(path);
 		else
-			walkDirectory(path, filters, m_ui->recursive_checkBox->isChecked(), allPaths);
+			walkDirectory(path, filters, m_ui->recursive_checkBox->isChecked(), filePathList);
 	}
-	for (const QString& path : allPaths)
+
+	if (filePathList.size() > 128)
 	{
+		QMessageBox::StandardButton btn = QMessageBox::question(this, tr("Confirm action")
+			, tr("This action will import %1 files, and may take some time. Continue?").arg(QLocale().toString(filePathList.size())));
+		if (btn != QMessageBox::Yes)
+			return;
+	}
+
+	QProgressDialog progress(tr("Adding files..."), tr("Abort"), 0, filePathList.size(), this);
+	progress.setWindowModality(Qt::ApplicationModal);
+
+	for (int i = 0; i < filePathList.size(); ++i)
+	{
+		QString& filePath = filePathList[i];
+		progress.setValue(i);
+		progress.setLabelText(tr("Adding file: %1").arg(
+			filePath.size() > 32
+				? filePath.first(8) + u"..."_s + filePath.last(24)
+				: filePath
+		));
+		if (progress.wasCanceled())
+			return;
 		QSharedPointer<File> file;
-		if (DBResult error = File::create(path, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
+		if (DBResult error = File::create(filePath, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
 			continue;
 		for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
 			file->addTag(tag);
 	}
+	progress.setValue(filePathList.size());
 	QDialog::accept();
 }
 
