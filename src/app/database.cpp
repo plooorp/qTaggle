@@ -237,24 +237,8 @@ int Database::updateSchema_0to1()
 			FOREIGN KEY (tag_id)  REFERENCES tag(id)  ON DELETE CASCADE
 		) STRICT;
 
-		CREATE TRIGGER increment_tag_degree
-		AFTER INSERT ON file_tag
-		BEGIN
-			UPDATE tag
-			SET    degree = degree + 1
-			WHERE  id = NEW.tag_id;
-		END;
-
-		CREATE TRIGGER decrement_tag_degree
-		AFTER DELETE ON file_tag
-		BEGIN
-			UPDATE tag
-			SET    degree = degree - 1
-			WHERE  id = OLD.tag_id;
-		END;
-
 		CREATE TRIGGER update_file_modified
-		AFTER UPDATE OF path, dir, alias, comment, source, sha1digest ON file
+		AFTER UPDATE OF alias, comment, source, sha1digest ON file
 		BEGIN
 			UPDATE file
 			SET    modified = unixepoch()
@@ -268,8 +252,20 @@ int Database::updateSchema_0to1()
 			SET    modified = unixepoch()
 			WHERE  id = NEW.id;
 		END;
+
+		CREATE TRIGGER file_tag_ai AFTER INSERT ON file_tag
+		BEGIN
+			UPDATE file SET modified = unixepoch() WHERE file.id = NEW.file_id;
+			UPDATE tag SET degree = degree + 1 WHERE id = NEW.tag_id;
+		END;
+
+		CREATE TRIGGER file_tag_ad AFTER DELETE ON file_tag
+		BEGIN
+			UPDATE file SET modified = unixepoch() WHERE file.id = OLD.file_id;
+			UPDATE tag SET degree = degree - 1 WHERE id = OLD.tag_id;
+		END;
 	)";
-	int rc = sqlite3_exec(m_con, sql.c_str(), 0, 0, 0);
+	int rc = sqlite3_exec(m_con, sql, 0, 0, 0);
 	if (rc != SQLITE_OK)
 		qCritical() << "Failed updating database from user_version 0 to 1:" << sqlite3_errmsg(m_con);
 	return rc;
