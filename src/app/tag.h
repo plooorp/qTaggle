@@ -22,7 +22,6 @@ public:
 	static QSharedPointer<Tag> fromStmt(sqlite3_stmt* stmt);
 	static QSharedPointer<Tag> fromID(const int64_t id);
 	static QSharedPointer<Tag> fromName(const QString& name);
-	static QList<QSharedPointer<Tag>> fromQuery(const QString& query);
 	void fetch();
 	int64_t id() const;
 	QString name() const;

@@ -178,7 +178,7 @@ QString Database::configPath() const
 
 int Database::updateSchema_0to1()
 {
-	const std::string sql = R"(
+	const char* sql = R"(
 		CREATE TABLE file(
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
 			path        TEXT    NOT NULL UNIQUE,
@@ -208,6 +208,9 @@ int Database::updateSchema_0to1()
 		) STRICT;
 
 		CREATE INDEX tag_name ON tag(name);
+		CREATE INDEX tag_degree ON tag(degree);
+		CREATE INDEX tag_created ON tag(created);
+		CREATE INDEX tag_modified ON tag(modified);
 
 		CREATE VIRTUAL TABLE tag_search USING fts5(name, description, content='tag', content_rowid='id');
 		CREATE TRIGGER tag_ai AFTER INSERT ON tag

@@ -36,6 +36,9 @@ set(PROJECT_SOURCES
 	gui/docked/filters.h
 	gui/docked/properties.cpp
 	gui/docked/properties.h
+	gui/helper/paginator.cpp
+	gui/helper/paginator.h
+	gui/helper/paginator.ui
 	gui/helper/plaintextlistedit.cpp
 	gui/helper/plaintextlistedit.h
 	gui/helper/taglineedit.cpp

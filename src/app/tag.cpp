@@ -143,43 +143,6 @@ QSharedPointer<Tag> Tag::fromName(const QString& name)
 	return tag;
 }
 
-QList<QSharedPointer<Tag>> Tag::fromQuery(const QString& query)
-{
-	QList<QSharedPointer<Tag>> tags;
-	if (!db->isOpen())
-		return tags;
-	if (query.trimmed().isEmpty())
-	{
-		sqlite3_stmt* stmt;
-		sqlite3_prepare_v2(db->con(), "SELECT * FROM tag;", -1, &stmt, nullptr);
-		while (sqlite3_step(stmt) == SQLITE_ROW)
-			tags.append(fromStmt(stmt));
-		sqlite3_finalize(stmt);
-	}
-	else
-	{
-		QStringList query_parts = query.split(' ', Qt::SkipEmptyParts);
-		for (QString& part : query_parts)
-			part = part + u"*"_s;
-		QString query_norm = query_parts.join(' ');
-		QByteArray query_bytes = query_norm.toUtf8();
-		const char* sql = R"(
-			SELECT * FROM tag WHERE id IN (
-				SELECT ROWID FROM tag_search
-				WHERE tag_search MATCH ?
-				ORDER BY bm25(tag_search, 10.0, 5.0)
-			);
-		)";
-		sqlite3_stmt* stmt;
-		sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
-		sqlite3_bind_text(stmt, 1, query_bytes.constData(), -1, SQLITE_STATIC);
-		while (sqlite3_step(stmt) == SQLITE_ROW)
-			tags.append(fromStmt(stmt));
-		sqlite3_finalize(stmt);
-	}
-	return tags;
-}
-
 DBResult Tag::remove()
 {
 	if (!db->isOpen())
@@ -188,8 +151,8 @@ DBResult Tag::remove()
 	sqlite3_prepare_v2(db->con(), "DELETE FROM tag WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
 	int rc = sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-		if (rc != SQLITE_DONE)
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
 		return DBResult(rc);
 	emit deleted();
 	return DBResult();
