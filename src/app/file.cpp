@@ -21,13 +21,13 @@ void File::initFile(sqlite3_stmt* stmt)
 {
 	m_id = sqlite3_column_int64(stmt, 0);
 	m_path = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 1), sqlite3_column_bytes(stmt, 1));
-	m_alias = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 4), sqlite3_column_bytes(stmt, 4));
-	m_state = (State)sqlite3_column_int64(stmt, 5);
-	m_comment = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 6), sqlite3_column_bytes(stmt, 6));
-	m_source = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 7), sqlite3_column_bytes(stmt, 7));
-	m_sha1 = QByteArray((const char*)sqlite3_column_blob(stmt, 8), SHA1_DIGEST_SIZE);
-	m_created = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 9));
-	m_modified = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 10));
+	m_alias = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 3), sqlite3_column_bytes(stmt, 3));
+	m_state = (State)sqlite3_column_int64(stmt, 4);
+	m_comment = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 5), sqlite3_column_bytes(stmt, 5));
+	m_source = QString::fromUtf8((const char*)sqlite3_column_text(stmt, 6), sqlite3_column_bytes(stmt, 6));
+	m_sha1 = QByteArray((const char*)sqlite3_column_blob(stmt, 7), SHA1_DIGEST_SIZE_BYTES);
+	m_created = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 8));
+	m_modified = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 9));
 
 	sqlite3_stmt* _stmt;
 	const char* sql = R"(
@@ -65,26 +65,24 @@ DBResult File::create(const QString& path, const QString& alias, const QString& 
 	if (sha1.isNull())
 		return DBResult(DBResult::FileIOError, "Failed to calculate SHA1 digest");
 	const char* sql = R"(
-		INSERT INTO file(path, name, dir, alias, state, comment, source, sha1)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO file(path, name, alias, state, comment, source, sha1)
+		VALUES(?, ?, ?, ?, ?, ?, ?)
 	)";
 	db->begin();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 	QByteArray path_bytes = fileInfo.absoluteFilePath().toUtf8();
 	QByteArray name_bytes = fileInfo.fileName().toUtf8();
-	QByteArray dir_bytes = fileInfo.absoluteDir().absolutePath().toUtf8();
 	QByteArray alias_bytes = alias.trimmed().toUtf8();
 	QByteArray comment_bytes = comment.trimmed().toUtf8();
 	QByteArray source_bytes = source.trimmed().toUtf8();
 	sqlite3_bind_text(stmt, 1, path_bytes.constData(), -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, name_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, dir_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 4, alias_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 5, (int)State::Ok);
-	sqlite3_bind_text(stmt, 6, comment_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 7, source_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_blob(stmt, 8, sha1.constData(), SHA1_DIGEST_SIZE, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, alias_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_int(stmt, 4, Ok);
+	sqlite3_bind_text(stmt, 5, comment_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 6, source_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_blob(stmt, 7, sha1.constData(), SHA1_DIGEST_SIZE_BYTES, SQLITE_STATIC);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
@@ -260,15 +258,13 @@ DBResult File::setPath(const QString& path)
 	QFileInfo file(path);
 
 	sqlite3_stmt* stmt;
-	std::string sql = "UPDATE file SET path = ?, name = ?, dir = ? WHERE id = ?;";
+	std::string sql = "UPDATE file SET path = ?, name = ? WHERE id = ?;";
 	sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
 	QByteArray path_bytes = file.absoluteFilePath().toUtf8();
 	QByteArray name_bytes = file.fileName().toUtf8();
-	QByteArray dir_bytes = file.absoluteDir().absolutePath().toUtf8();
 	sqlite3_bind_text(stmt, 1, path_bytes.constData(), -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, name_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, dir_bytes.constData(), -1, SQLITE_STATIC);
-	sqlite3_bind_int64(stmt, 4, m_id);
+	sqlite3_bind_int64(stmt, 3, m_id);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)

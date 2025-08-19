@@ -2,7 +2,6 @@ CREATE TABLE file(
 	id          INTEGER PRIMARY KEY AUTOINCREMENT,
 	path        TEXT    NOT NULL UNIQUE,
 	name        TEXT    NOT NULL,
-	dir         TEXT    NOT NULL,
 	alias       TEXT    NOT NULL,
 	state       INTEGER NOT NULL,
 	comment     TEXT    NOT NULL,
@@ -14,7 +13,7 @@ CREATE TABLE file(
 
 CREATE INDEX file_path ON file(path);
 CREATE INDEX file_name ON file(name);
-CREATE INDEX file_dir  ON file(dir);
+
 
 CREATE TABLE tag(
 	id          INTEGER PRIMARY KEY AUTOINCREMENT,
