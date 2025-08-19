@@ -3,10 +3,51 @@
 #include <QObject>
 #include <QSharedPointer>
 #include "sqlite3.h"
+#include "app/error.h"
+#include "app/globals.h"
 
 #define db Database::instance()
 
-struct DBResult
+//struct DBResult
+//{
+//public:
+//	enum Code
+//	{
+//		Ok,
+//		SQLiteError,
+//		DatabaseClosed,
+//		ValueError,
+//		FileIOError,
+//		FileNotFound,
+//		CheckError
+//	};
+//	DBResult()
+//		: code(Ok)
+//		, msg(m_code_str[Ok])
+//		, sqlite_code(-1)
+//	{}
+//	DBResult(Code _code, QString _msg)
+//		: code(_code)
+//		, sqlite_code(-1)
+//		, msg(_msg)
+//	{}
+//	DBResult(int _sqlite_code)
+//		: code(SQLiteError)
+//		, sqlite_code(_sqlite_code)
+//		, msg(sqlite3_errstr(_sqlite_code))
+//	{}
+//	explicit operator bool() const
+//	{
+//		return code != Ok;
+//	}
+//	Code code;
+//	int sqlite_code;
+//	QString msg;
+//private:
+//	static QStringList m_code_str;
+//};
+
+struct DBResult : public Error
 {
 public:
 	enum Code
@@ -15,30 +56,23 @@ public:
 		SQLiteError,
 		DatabaseClosed,
 		ValueError,
-		FileIOError
+		FileIOError,
+		FileNotFound,
+		CheckError
 	};
-	DBResult()
-		: code(Ok)
-		, msg(m_code_str[Ok])
+	explicit DBResult(const Error* parent = nullptr)
+		: Error(u"DatabaseError"_s, Ok, m_code_str[Ok], parent)
 		, sqlite_code(-1)
 	{}
-	DBResult(Code _code, QString _msg)
-		: code(_code)
+	explicit DBResult(Code code, const QString& message, const Error* parent = nullptr)
+		: Error(u"DatabaseError"_s, code, message, parent)
 		, sqlite_code(-1)
-		, msg(_msg)
 	{}
-	DBResult(int _sqlite_code)
-		: code(SQLiteError)
-		, sqlite_code(_sqlite_code)
-		, msg(sqlite3_errstr(_sqlite_code))
+	explicit DBResult(int sqlite_code, const Error* parent = nullptr)
+		: Error(u"DatabaseError"_s, SQLiteError, sqlite3_errstr(sqlite_code), parent)
+		, sqlite_code(sqlite_code)
 	{}
-	explicit operator bool() const
-	{
-		return code != Ok;
-	}
-	Code code;
 	int sqlite_code;
-	QString msg;
 private:
 	static QStringList m_code_str;
 };

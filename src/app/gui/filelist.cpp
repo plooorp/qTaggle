@@ -5,12 +5,17 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QSettings>
+#include <QCompleter>
+#include <QLabel>
+#include <QTreeWidget>
 
 #include "app/database.h"
 #include "app/file.h"
 #include "app/gui/dialog/newfiledialog.h"
 #include "app/gui/dialog/editfiledialog.h"
 #include "app/gui/dialog/editfiledialogmulti.h"
+#include "app/gui/helper/taglineedit.h"
+#include "app/globals.h"
 
 FileList::FileList(QWidget* parent)
 	: QWidget(parent)
@@ -18,7 +23,6 @@ FileList::FileList(QWidget* parent)
 	, m_model(new FileTableModel(this))
 {
 	m_ui->setupUi(this);
-	m_ui->treeView->setRootIsDecorated(false);
 	
 	// context menu actions
 	connect(m_ui->actionAdd, &QAction::triggered, this, &FileList::actionAdd_triggered);
@@ -28,15 +32,31 @@ FileList::FileList(QWidget* parent)
 	connect(m_ui->actionCheck, &QAction::triggered, this, &FileList::actionCheck_triggered);
 	connect(m_ui->actionDelete, &QAction::triggered, this, &FileList::actionDelete_triggered);
 
-	connect(db, &Database::opened, this, &FileList::populate);
-	connect(m_ui->lineEdit, &QLineEdit::textChanged, this, &FileList::populate);
-
 	m_ui->treeView->setModel(m_model);
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &FileList::editSelected);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &FileList::showContextMenu);
 	connect(m_ui->treeView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]()-> void {emit selectionChanged(); });
 
+	m_ui->sortBy->addItem(tr("Name"), u"name"_s);
+	m_ui->sortBy->addItem(tr("Alias"), u"alias"_s);
+	m_ui->sortBy->addItem(tr("Path"), u"path"_s);
+	m_ui->sortBy->addItem(tr("State"), u"state"_s);
+	m_ui->sortBy->addItem(tr("Date created"), u"created"_s);
+	m_ui->sortBy->addItem(tr("Last modified"), u"modified"_s);
+	m_ui->sortBy->addItem(tr("Last checked"), u"checked"_s);
+
+	m_ui->sortOrder->addItem(tr("Ascending"), u"ASC"_s);
+	m_ui->sortOrder->addItem(tr("Descending"), u"DESC"_s);
+
 	readSettings();
+
+	connect(db, &Database::opened, this, &FileList::populate);
+	connect(m_ui->nameLineEdit, &QLineEdit::textEdited, this, &FileList::populate);
+	connect(m_ui->tagLineEdit, &QLineEdit::textEdited, this, &FileList::populate);
+	connect(m_ui->paginator, &Paginator::pageChangedByUser, this, &FileList::populate);
+	connect(m_ui->resultsPerPage, &QSpinBox::editingFinished, this, &FileList::populate);
+	connect(m_ui->sortBy, &QComboBox::currentIndexChanged, this, &FileList::populate);
+	connect(m_ui->sortOrder, &QComboBox::currentIndexChanged, this, &FileList::populate);
 }
 
 FileList::~FileList()
@@ -69,8 +89,45 @@ void FileList::editSelected()
 
 void FileList::checkSelected()
 {
-	for (const QSharedPointer<File>& file : selectedFiles())
-		file->check();
+	QList<QSharedPointer<File>> files = selectedFiles();
+	QList<std::tuple<QSharedPointer<File>, CheckResult>> checksumErrors;
+	for (int i = 0; i < files.size(); ++i)
+	{
+		QSharedPointer<File>& file = files[i];
+		CheckResult error = file->check();
+		if (!error && file->state() == File::ChecksumChanged)
+			checksumErrors.append({ file, error });
+	}
+
+	if (!checksumErrors.isEmpty())
+	{
+		QDialog* dialog = new QDialog(this);
+		dialog->setWindowTitle(tr("Checksum conflict found"));
+		QLabel* label = new QLabel(tr("The following files have had their contents changed since they were last checked. Do you want to overwrite their existing checksums?"), dialog);
+		label->setWordWrap(true);
+		QTreeWidget* table = new QTreeWidget(dialog);
+		table->setHeaderLabels({ "Name", "Path", "Old SHA-1", "New SHA-1" });
+		for (const std::tuple<QSharedPointer<File>, CheckResult>& tuple : checksumErrors)
+		{
+			QSharedPointer<File> file = std::get<0>(tuple);
+			new QTreeWidgetItem(table, { file->name(), file->path(), file->sha1().toHex(), std::get<1>(tuple).sha1.toHex() });
+		}
+		QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Yes | QDialogButtonBox::No, Qt::Horizontal, dialog);
+		connect(buttonBox, &QDialogButtonBox::accepted, dialog, &QDialog::accept);
+		connect(buttonBox, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
+		QVBoxLayout* layout = new QVBoxLayout(dialog);
+		layout->addWidget(label);
+		layout->addWidget(table);
+		layout->addWidget(buttonBox);
+		dialog->setLayout(layout);
+		if (dialog->exec())
+			for (const std::tuple<QSharedPointer<File>, CheckResult>& tuple : checksumErrors)
+			{
+				QSharedPointer<File> file = std::get<0>(tuple);
+				file->setSHA1(std::get<1>(tuple).sha1);
+				file->setState(File::Ok);
+			}
+	}
 }
 
 void FileList::deleteSelected()
@@ -84,20 +141,153 @@ void FileList::deleteSelected()
 			: tr("Are you sure you want to delete '%1'? This will not delete the file from disk.").arg(files.first()->name())
 	);
 	if (btn == QMessageBox::Yes)
-		for (QSharedPointer<File>& file : files)
+		for (const QSharedPointer<File>& file : files)
 			file->remove();
 }
 
 void FileList::populate()
 {
-	m_model->clear();
-	for (const QSharedPointer<File>& file : File::fromQuery(m_ui->lineEdit->text()))
-		m_model->addFile(file);
-}
+	QString tags = m_ui->tagLineEdit->text().trimmed();
+	QString query = m_ui->nameLineEdit->text().trimmed();
+	int resultsPerPage = m_ui->resultsPerPage->value();
+	int offset = m_ui->paginator->page() * resultsPerPage;
 
-void FileList::depopulate()
-{
+	QString sql = uR"(
+		SELECT DISTINCT file.* FROM file
+		LEFT JOIN file_tag ON file_tag.file_id = file.id
+		WHERE :tags AND :search
+		:orderby
+		LIMIT ? OFFSET ?;
+	)"_s;
+	QString sql_count = uR"(
+		SELECT COUNT(*) FROM file
+		LEFT JOIN file_tag ON file_tag.file_id = file.id
+		WHERE :tags AND :search;
+	)"_s;
+	QByteArrayList include, exclude;
+	if (tags.isEmpty())
+	{
+		sql.replace(u":tags"_s, u"1"_s);
+		sql_count.replace(u":tags"_s, u"1"_s);
+	}
+	else
+	{
+		for (const QString& tag : tags.split(' ', Qt::SkipEmptyParts))
+		{
+			if (tag.startsWith('!'))
+				exclude.append(tag.mid(1).toUtf8());
+			else
+				include.append(tag.toUtf8());
+		}
+		if (include.isEmpty())
+		{
+			sql.replace(u":tags"_s, u"1"_s);
+			sql_count.replace(u":tags"_s, u"1"_s);
+		}
+		else
+		{
+			sql.replace(u":tags"_s, uR"(
+				file_tag.tag_id IN (
+					SELECT id FROM tag WHERE name IN (:include)
+					EXCEPT
+					SELECT id FROM tag WHERE name IN (:exclude)
+				)
+			)"_s);
+			sql_count.replace(u":tags"_s, uR"(
+				file_tag.tag_id IN (
+					SELECT id FROM tag WHERE name IN (:include)
+					EXCEPT
+					SELECT id FROM tag WHERE name IN (:exclude)
+				)
+			)"_s);
+			QStringList placeholders(include.size(), u"?"_s);
+			sql.replace(u":include"_s, placeholders.join(u", "_s));
+			sql_count.replace(u":include"_s, placeholders.join(u", "_s));
+			if (exclude.isEmpty())
+			{
+				sql.remove(u":exclude"_s);
+				sql_count.remove(u":exclude"_s);
+			}
+			else
+			{
+				QStringList placeholders(exclude.size(), u"?"_s);
+				sql.replace(u":exclude"_s, placeholders.join(u", "_s));
+				sql_count.replace(u":exclude"_s, placeholders.join(u", "_s));
+			}
+		}
+	}
+
+	if (query.isEmpty())
+	{
+		sql.replace(u":search"_s, u"1"_s);
+		sql_count.replace(u":search"_s, u"1"_s);
+	}
+	else
+	{
+		sql.replace(u":search"_s, uR"(
+			file.id IN (
+				SELECT ROWID FROM file_search
+				WHERE file_search MATCH ?
+				ORDER BY bm25(file_search, 15.0, 15.0, 10.0, 5.0)
+			)
+		)"_s);
+		sql_count.replace(u":search"_s, uR"(
+			file.id IN (
+				SELECT ROWID FROM file_search
+				WHERE file_search MATCH ?
+				ORDER BY bm25(file_search, 15.0, 15.0, 10.0, 5.0)
+			)
+		)"_s);
+	}
+
+	if (query.isEmpty())
+	{
+		const QString sortBy = m_ui->sortBy->currentData().toString();
+		const QString sortOrder = m_ui->sortOrder->currentData().toString();
+		sql.replace(u":orderby"_s, u"ORDER BY "_s + sortBy + u" "_s + sortOrder);
+	}
+	else
+		sql.remove(u":orderby"_s);
+
+	QStringList query_parts = query.split(' ', Qt::SkipEmptyParts);
+	for (QString& part : query_parts)
+		part = part + u"*"_s;
+	QByteArray query_bytes = query_parts.join(' ').toUtf8();
+
+	int i = 0;
+	sqlite3_stmt* stmt;
+	QByteArray sql_bytes = sql.toUtf8();
+	sqlite3_prepare_v2(db->con(), sql_bytes.constData(), -1, &stmt, nullptr);
+	for (const QByteArray& tag : include)
+		sqlite3_bind_text(stmt, ++i, tag.constData(), -1, SQLITE_STATIC);
+	for (const QByteArray& tag : exclude)
+		sqlite3_bind_text(stmt, ++i, tag.constData(), -1, SQLITE_STATIC);
+	if (!query.isEmpty())
+		sqlite3_bind_text(stmt, ++i, query_bytes, -1, SQLITE_STATIC);
+	sqlite3_bind_int(stmt, ++i, resultsPerPage);
+	sqlite3_bind_int(stmt, ++i, offset);
 	m_model->clear();
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+		m_model->addFile(File::fromStmt(stmt));
+	sqlite3_finalize(stmt);
+	
+	i = 0;
+	QByteArray sql_count_bytes = sql_count.toUtf8();
+	sqlite3_prepare_v2(db->con(), sql_count_bytes.constData(), -1, &stmt, nullptr);
+	for (const QByteArray& tag : include)
+		sqlite3_bind_text(stmt, ++i, tag.constData(), -1, SQLITE_STATIC);
+	for (const QByteArray& tag : exclude)
+		sqlite3_bind_text(stmt, ++i, tag.constData(), -1, SQLITE_STATIC);
+	if (!query.isEmpty())
+		sqlite3_bind_text(stmt, ++i, query_bytes, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		int64_t count = sqlite3_column_int64(stmt, 0);
+		int resultsPerPage = m_ui->resultsPerPage->value();
+		int maxPage = std::ceil(static_cast<double>(count) / resultsPerPage) - 1;
+		m_ui->paginator->setMaxPage(maxPage < 0 ? 0 : maxPage);
+	}
+	sqlite3_finalize(stmt);
 }
 
 void FileList::actionAdd_triggered()
@@ -149,10 +339,16 @@ void FileList::readSettings()
 	const QByteArray headerState = settings.value("GUI/FileList/headerState").toByteArray();
 	if (!headerState.isEmpty())
 		m_ui->treeView->header()->restoreState(headerState);
+	m_ui->resultsPerPage->setValue(settings.value("GUI/FileList/resultsPerPage", 64).toInt());
+	m_ui->sortBy->setCurrentIndex(settings.value("GUI/FileList/sortBy", 0).toInt());
+	m_ui->sortOrder->setCurrentIndex(settings.value("GUI/FileList/sortOrder", 0).toInt());
 }
 
 void FileList::writeSettings()
 {
 	QSettings settings;
 	settings.setValue("GUI/FileList/headerState", m_ui->treeView->header()->saveState());
+	settings.setValue("GUI/FileList/resultsPerPage", m_ui->resultsPerPage->value());
+	settings.setValue("GUI/FileList/sortBy", m_ui->sortBy->currentIndex());
+	settings.setValue("GUI/FileList/sortOrder", m_ui->sortBy->currentIndex());
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>306</height>
+    <width>523</width>
+    <height>336</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,10 +15,48 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="placeholderText">
-      <string>Filter</string>
-     </property>
+    <widget class="QWidget" name="widget" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="TagLineEdit" name="tagLineEdit">
+        <property name="placeholderText">
+         <string>Filter by tag</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="nameLineEdit">
+        <property name="placeholderText">
+         <string>Filter by name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Sort by</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="sortBy"/>
+      </item>
+      <item>
+       <widget class="QComboBox" name="sortOrder"/>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -33,11 +71,66 @@
       <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
      </property>
      <property name="rootIsDecorated">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QWidget" name="widget_2" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Results per page</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="resultsPerPage">
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>4096</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Paginator" name="paginator" native="true"/>
+      </item>
+     </layout>
     </widget>
    </item>
   </layout>
@@ -89,6 +182,19 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>TagLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>app/gui/helper/taglineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>Paginator</class>
+   <extends>QWidget</extends>
+   <header>app/gui/helper/paginator.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

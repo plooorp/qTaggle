@@ -71,8 +71,8 @@ QVariant TagTableModel::headerData(int section, Qt::Orientation orientation, int
 		case Column::Description: return tr("Description");
 		case Column::URLs: return tr("URLs");
 		case Column::Degree: return tr("Degree");
-		case Column::Created: return tr("Created");
-		case Column::Modified: return tr("Modified");
+		case Column::Created: return tr("Date created");
+		case Column::Modified: return tr("Date modified");
 		}
 	}
 	return QVariant();

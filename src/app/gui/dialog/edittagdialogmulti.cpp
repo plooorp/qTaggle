@@ -53,5 +53,5 @@ void EditTagDialogMulti::accept()
 error:
 	db->rollback();
 	QMessageBox::warning(this, qApp->applicationName()
-		, tr("Failed to update tags: ") + error.msg);
+		, tr("Failed to update tags: ") + error.message);
 }

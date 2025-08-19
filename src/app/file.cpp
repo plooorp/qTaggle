@@ -1,8 +1,9 @@
 #include "file.h"
 
+#include <QApplication>
 #include <QCryptographicHash>
 #include <QFile>
-#include <QApplication>
+#include "app/globals.h"
 
 File::File(sqlite3_stmt* stmt)
 	: QObject(nullptr)
@@ -28,6 +29,7 @@ void File::initFile(sqlite3_stmt* stmt)
 	m_sha1 = QByteArray((const char*)sqlite3_column_blob(stmt, 7), SHA1_DIGEST_SIZE_BYTES);
 	m_created = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 8));
 	m_modified = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 9));
+	m_checked = QDateTime::fromSecsSinceEpoch(sqlite3_column_int64(stmt, 10));
 
 	sqlite3_stmt* _stmt;
 	const char* sql = R"(
@@ -112,9 +114,9 @@ DBResult File::remove()
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "DELETE FROM file WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
-		int rc = sqlite3_step(stmt);
-		sqlite3_finalize(stmt);
-		if (rc != SQLITE_DONE)
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
 		return DBResult(rc);
 	emit deleted();
 	return DBResult();
@@ -131,66 +133,32 @@ QSharedPointer<File> File::fromStmt(sqlite3_stmt* stmt)
 	return file;
 }
 
-QList<QSharedPointer<File>> File::fromQuery(const QString& query)
+CheckResult File::check()
 {
-	QList<QSharedPointer<File>> files;
-	QString query_trimmed = query.trimmed();
-	QByteArray query_bytes = query_trimmed.toUtf8();
-	sqlite3_stmt* stmt;
-	if (query_trimmed.isNull() || query_trimmed.isEmpty())
-		sqlite3_prepare_v2(db->con(), "SELECT * FROM file;", -1, &stmt, nullptr);
-	else
-	{
-		std::string sql = R"(
-			SELECT * FROM file
-			WHERE path LIKE concat('%', ?, '%')
-				OR alias LIKE concat('%', ?, '%')
-			ORDER BY
-				CASE
-					WHEN alias LIKE concat(?, '%') THEN 1
-					WHEN name LIKE concat(?, '%') THEN 2
-					WHEN path LIKE concat(?, '%') THEN 3
-					
-					WHEN name LIKE concat('%', ?, '%') THEN 4
-					WHEN path LIKE concat('%', ?, '%') THEN 5
-					ELSE 6
-				END;
-		)";
-		sqlite3_prepare_v2(db->con(), sql.c_str(), -1, &stmt, nullptr);
-		sqlite3_bind_text(stmt, 1, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 2, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 3, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 4, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 5, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 6, query_bytes.constData(), -1, SQLITE_STATIC);
-		sqlite3_bind_text(stmt, 7, query_bytes.constData(), -1, SQLITE_STATIC);
-	}
-	while (sqlite3_step(stmt) == SQLITE_ROW)
-		files.append(fromStmt(stmt));
-	sqlite3_finalize(stmt);
-	return files;
-}
-
-void File::check()
-{
+	CheckResult ok = CheckResult();
+	QByteArray sha1 = sha1Digest(m_path);
 	if (!QFileInfo::exists(m_path))
 	{
-		setState(State::FileMissing);
-		return;
+		if (DBResult error = setState(FileMissing))
+			return CheckResult(CheckResult::Fail, u"Failed to update file state to FileMissing"_s, &error);
 	}
-	QByteArray sha1 = sha1Digest(m_path);
-	if (sha1.isEmpty())
+	else if (sha1.isEmpty())
 	{
-		setState(State::Error);
-		return;
+		if (DBResult error = setState(Error))
+			return CheckResult(CheckResult::Fail, u"Failed to update state to Error"_s, &error);
 	}
-	if (sha1 != m_sha1)
+	else if (sha1 != m_sha1)
 	{
-		setState(State::ChecksumChanged);
-		return;
+		if (DBResult error = setState(ChecksumChanged))
+			return CheckResult(CheckResult::Fail, u"Failed to set state to ChecksumChanged"_s, &error);
+		ok.sha1 = sha1;
 	}
-	if (m_state != State::Ok)
-		setState(Ok);
+	else
+		if (DBResult error = setState(Ok))
+			return CheckResult(CheckResult::Fail, u"Failed to set state back to Ok"_s, &error);
+	updateChecked();
+	return ok;
+
 }
 
 DBResult File::addTag(const QSharedPointer<Tag>& tag)
@@ -207,13 +175,13 @@ DBResult File::addTag(const QSharedPointer<Tag>& tag)
 		return DBResult(rc);
 	if (db->inTransaction())
 	{
-			db->addRecordToRollbackFetch(m_instances.value(m_id));
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
 		db->addRecordToRollbackFetch(tag);
 	}
-		fetch();
+	fetch();
 	tag->fetch();
-		return DBResult();
-	}
+	return DBResult();
+}
 
 DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 {
@@ -277,6 +245,8 @@ DBResult File::setPath(const QString& path)
 
 DBResult File::setState(File::State state)
 {
+	if (!db->isOpen() || state == m_state)
+		return DBResult();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET state = ? WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, state);
@@ -314,6 +284,38 @@ DBResult File::setSource(const QString& source)
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET source = ? WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_text(stmt, 1, source_bytes.constData(), -1, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, m_id);
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
+		return DBResult(rc);
+	if (db->inTransaction())
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
+	fetch();
+	return DBResult();
+}
+
+DBResult File::setSHA1(const QByteArray& sha1)
+{
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "UPDATE file SET sha1 = ? WHERE id = ?;", -1, &stmt, nullptr);
+	sqlite3_bind_blob(stmt, 1, sha1, SHA1_DIGEST_SIZE_BYTES, SQLITE_STATIC);
+	sqlite3_bind_int64(stmt, 2, m_id);
+	int rc = sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+	if (rc != SQLITE_DONE)
+		return DBResult(rc);
+	if (db->inTransaction())
+		db->addRecordToRollbackFetch(m_instances.value(m_id));
+	fetch();
+	return DBResult();
+}
+
+DBResult File::updateChecked()
+{
+	sqlite3_stmt* stmt;
+	sqlite3_prepare_v2(db->con(), "UPDATE file SET checked = ? WHERE id = ?;", -1, &stmt, nullptr);
+	sqlite3_bind_int64(stmt, 1, QDateTime::currentSecsSinceEpoch());
 	sqlite3_bind_int64(stmt, 2, m_id);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
@@ -375,6 +377,11 @@ QDateTime File::created() const
 QDateTime File::modified() const
 {
 	return m_modified;
+}
+
+QDateTime File::checked() const
+{
+	return m_checked;
 }
 
 QList<FileTag> File::tags() const

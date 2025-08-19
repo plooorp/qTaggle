@@ -69,6 +69,8 @@ set(PROJECT_SOURCES
 	database.h
 	#database.test.cpp
 	#database.test.h
+	error.cpp
+	error.h
 	file.cpp
 	file.h
 	filetag.cpp

@@ -32,6 +32,7 @@ private:
 		Source,
 		Sha1digest,
 		Created,
-		Modified
+		Modified,
+		Checked
 	};
 };

@@ -24,33 +24,32 @@ QVariant FileTableModel::data(const QModelIndex& index, int role) const
 	{
 		switch (index.column())
 		{
-		case Column::ID: return QString::number(file->id());
-		case Column::Name: return file->name();
-		case Column::Path: return file->path();
-		case Column::Sha1digest: return QString(file->sha1().toHex());
-		case Column::Comment: return file->comment();
-		case Column::Source: return file->source();
-		case Column::Created: return QLocale().toString(file->created(), QLocale::ShortFormat);
-		case Column::Modified: return QLocale().toString(file->modified(), QLocale::ShortFormat);
+		case ID: return QString::number(file->id());
+		case Name: return file->name();
+		case Path: return file->path();
+		case Sha1digest: return QString(file->sha1().toHex());
+		case Comment: return file->comment();
+		case Source: return file->source();
+		case Created: return QLocale().toString(file->created(), QLocale::ShortFormat);
+		case Modified: return QLocale().toString(file->modified(), QLocale::ShortFormat);
+		case Checked: return QLocale().toString(file->checked(), QLocale::ShortFormat);
 		}
 	}
 	if (role == Qt::ToolTipRole)
 	{
 		switch (index.column())
 		{
-		case Column::Sha1digest:
-			return QString(file->sha1().toHex());
-		case Column::Created:
-			return QLocale().toString(file->created(), QLocale::LongFormat);
-		case Column::Modified:
-			return QLocale().toString(file->modified(), QLocale::LongFormat);
+		case Sha1digest: return QString(file->sha1().toHex());
+		case Created: return QLocale().toString(file->created(), QLocale::LongFormat);
+		case Modified: return QLocale().toString(file->modified(), QLocale::LongFormat);
+		case Checked: return QLocale().toString(file->checked(), QLocale::LongFormat);
 		}
 	}
 	if (role == Qt::TextAlignmentRole)
 	{
 		switch (index.column())
 		{
-		case Column::ID: return Qt::AlignRight;
+		case ID: return Qt::AlignRight;
 		}
 	}
 	if (role == Qt::DecorationRole && index.column() == Name)
@@ -73,14 +72,15 @@ QVariant FileTableModel::headerData(int section, Qt::Orientation orientation, in
 	{
 		switch (section)
 		{
-		case Column::ID: return tr("ID");
-		case Column::Name: return tr("Name");
-		case Column::Path: return tr("Path");
-		case Column::Comment: return tr("Comment");
-		case Column::Source: return tr("Source");
-		case Column::Sha1digest: return tr("SHA-1");
-		case Column::Created: return tr("Created");
-		case Column::Modified: return tr("Modified");
+		case ID: return tr("ID");
+		case Name: return tr("Name");
+		case Path: return tr("Path");
+		case Comment: return tr("Comment");
+		case Source: return tr("Source");
+		case Sha1digest: return tr("SHA-1");
+		case Created: return tr("Date created");
+		case Modified: return tr("Date modified");
+		case Checked: return tr("Date checked");
 		}
 	}
 	return QVariant();
@@ -97,7 +97,7 @@ int FileTableModel::columnCount(const QModelIndex& parent) const
 {
 	if (parent.isValid())
 		return 0;
-	return 8;
+	return 9;
 }
 
 void FileTableModel::addFile(const QSharedPointer<File>& file)

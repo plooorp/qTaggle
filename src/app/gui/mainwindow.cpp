@@ -246,7 +246,7 @@ void MainWindow::createDatabase(const QString& path)
 {
 	if (DBResult error = db->open(path))
 		QMessageBox::warning(this, qApp->applicationName()
-			, tr("Failed to create new database: ") + error.msg);
+			, tr("Failed to create new database: ") + error.message);
 	else
 	{
 		setWindowTitle(qApp->applicationName() + " - " + path);
@@ -258,7 +258,7 @@ void MainWindow::openDatabase(const QString& path)
 {
 	if (DBResult error = db->open(path))
 		QMessageBox::warning(this, qApp->applicationName()
-			, tr("Failed to open database: ") + error.msg);
+			, tr("Failed to open database: ") + error.message);
 	else
 	{
 		setWindowTitle(qApp->applicationName() + " - " + path);

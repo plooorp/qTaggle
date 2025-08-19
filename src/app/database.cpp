@@ -189,12 +189,36 @@ int Database::updateSchema_0to1()
 			source      TEXT    NOT NULL,
 			sha1        BLOB    NOT NULL,
 			created     INTEGER NOT NULL DEFAULT (unixepoch()),
-			modified    INTEGER NOT NULL DEFAULT (unixepoch())
+			modified    INTEGER NOT NULL DEFAULT (unixepoch()),
+			checked     INTEGER NOT NULL DEFAULT (unixepoch())
 		) STRICT;
 
 		CREATE INDEX file_path ON file(path);
 		CREATE INDEX file_name ON file(name);
+		CREATE INDEX file_alias ON file(alias);
+		CREATE INDEX file_state ON file(state);
+		CREATE INDEX file_created ON file(created);
+		CREATE INDEX file_modified ON file(modified);
+		CREATE INDEX file_checked ON file(checked);
 
+		CREATE VIRTUAL TABLE file_search USING fts5(name, alias, path, comment, content='file', content_rowid='id');
+		CREATE TRIGGER file_ai AFTER INSERT ON file
+		BEGIN
+			INSERT INTO file_search(rowid, name, alias, path, comment)
+			VALUES (NEW.id, NEW.name, NEW.alias, NEW.path, NEW.comment);
+		END;
+		CREATE TRIGGER file_ad AFTER DELETE ON file
+		BEGIN
+			INSERT INTO file_search(file_search, rowid, name, alias, path, comment)
+			VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.path, OLD.comment);
+		END;
+		CREATE TRIGGER file_au AFTER UPDATE ON file
+		BEGIN
+			INSERT INTO file_search(file_search, rowid, name, alias, path, comment)
+			VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.path, OLD.comment);
+			INSERT INTO file_search(rowid, name, alias, path, comment)
+			VALUES (NEW.id, NEW.name, NEW.alias, NEW.path, NEW.comment);
+		END;
 
 		CREATE TABLE tag(
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -281,10 +305,10 @@ void Database::addRecordToRollbackFetch(const QSharedPointer<Record>& record)
 
 QStringList DBResult::m_code_str =
 {
-	"Ok",
-	"", // sqlite3_errstr() is used instead
-	"Database is closed",
-	"Invalid parameter value",
-	"File read/write error"
+	u"Ok"_s,
+	u""_s, // sqlite3_errstr() is used instead
+	u"Database is closed"_s,
+	u"Invalid parameter value"_s,
+	u"File read/write error"_s
 };
 Database* Database::m_instance = nullptr;

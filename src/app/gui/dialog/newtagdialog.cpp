@@ -24,7 +24,7 @@ void NewTagDialog::accept()
 {
 	if (DBResult error = Tag::create(m_ui->name->text(), m_ui->description->toPlainText(), m_ui->urls->values()))
 	{
-		QMessageBox::warning(this, tr("Failed to create tag"), error.msg);
+		QMessageBox::warning(this, tr("Failed to create tag"), error.message);
 		return;
 	}
 	QDialog::accept();
