@@ -174,35 +174,39 @@ void FileList::populate()
 	{
 		for (const QString& tag : tags.split(' ', Qt::SkipEmptyParts))
 		{
-			if (tag.startsWith('!'))
+			if (tag == u"!"_s)
+				continue;
+			else if (tag.startsWith('!'))
 				exclude.append(tag.mid(1).toUtf8());
 			else
 				include.append(tag.toUtf8());
 		}
-		if (include.isEmpty())
-		{
-			sql.replace(u":tags"_s, u"1"_s);
-			sql_count.replace(u":tags"_s, u"1"_s);
-		}
-		else
-		{
 			sql.replace(u":tags"_s, uR"(
 				file_tag.tag_id IN (
-					SELECT id FROM tag WHERE name IN (:include)
+				SELECT id FROM tag :include_cond
 					EXCEPT
 					SELECT id FROM tag WHERE name IN (:exclude)
 				)
 			)"_s);
 			sql_count.replace(u":tags"_s, uR"(
 				file_tag.tag_id IN (
-					SELECT id FROM tag WHERE name IN (:include)
+				SELECT id FROM tag :include_cond
 					EXCEPT
 					SELECT id FROM tag WHERE name IN (:exclude)
 				)
 			)"_s);
+		if (include.isEmpty())
+		{
+			sql.remove(u":include_cond"_s);
+			sql_count.remove(u":include_cond"_s);
+		}
+		else
+		{
 			QStringList placeholders(include.size(), u"?"_s);
-			sql.replace(u":include"_s, placeholders.join(u", "_s));
-			sql_count.replace(u":include"_s, placeholders.join(u", "_s));
+			QString condition = u"WHERE name IN ("_s + placeholders.join(u", "_s) + u")"_s;
+			sql.replace(u":include_cond"_s, condition);
+			sql_count.replace(u":include_cond"_s, condition);
+		}
 			if (exclude.isEmpty())
 			{
 				sql.remove(u":exclude"_s);
@@ -210,10 +214,9 @@ void FileList::populate()
 			}
 			else
 			{
-				QStringList placeholders(exclude.size(), u"?"_s);
-				sql.replace(u":exclude"_s, placeholders.join(u", "_s));
-				sql_count.replace(u":exclude"_s, placeholders.join(u", "_s));
-			}
+			QString placeholders = QStringList(exclude.size(), u"?"_s).join(u", ");
+			sql.replace(u":exclude"_s, placeholders);
+			sql_count.replace(u":exclude"_s, placeholders);
 		}
 	}
 
