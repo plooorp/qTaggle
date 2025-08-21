@@ -90,11 +90,11 @@ void FileList::editSelected()
 void FileList::checkSelected()
 {
 	QList<QSharedPointer<File>> files = selectedFiles();
-	QList<std::tuple<QSharedPointer<File>, CheckResult>> checksumErrors;
+	QList<std::tuple<QSharedPointer<File>, CheckError>> checksumErrors;
 	for (int i = 0; i < files.size(); ++i)
 	{
 		QSharedPointer<File>& file = files[i];
-		CheckResult error = file->check();
+		CheckError error = file->check();
 		if (!error && file->state() == File::ChecksumChanged)
 			checksumErrors.append({ file, error });
 	}
@@ -107,7 +107,7 @@ void FileList::checkSelected()
 		label->setWordWrap(true);
 		QTreeWidget* table = new QTreeWidget(dialog);
 		table->setHeaderLabels({ "Name", "Path", "Old SHA-1", "New SHA-1" });
-		for (const std::tuple<QSharedPointer<File>, CheckResult>& tuple : checksumErrors)
+		for (const std::tuple<QSharedPointer<File>, CheckError>& tuple : checksumErrors)
 		{
 			QSharedPointer<File> file = std::get<0>(tuple);
 			new QTreeWidgetItem(table, { file->name(), file->path(), file->sha1().toHex(), std::get<1>(tuple).sha1.toHex() });
@@ -121,7 +121,7 @@ void FileList::checkSelected()
 		layout->addWidget(buttonBox);
 		dialog->setLayout(layout);
 		if (dialog->exec())
-			for (const std::tuple<QSharedPointer<File>, CheckResult>& tuple : checksumErrors)
+			for (const std::tuple<QSharedPointer<File>, CheckError>& tuple : checksumErrors)
 			{
 				QSharedPointer<File> file = std::get<0>(tuple);
 				file->setSHA1(std::get<1>(tuple).sha1);

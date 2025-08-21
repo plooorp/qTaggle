@@ -38,7 +38,7 @@ EditTagDialogMulti::~EditTagDialogMulti()
 void EditTagDialogMulti::accept()
 {
 	db->begin();
-	DBResult error;
+	DBError error;
 	if (m_ui->descriptionGroup->isChecked())
 		for (const QSharedPointer<Tag>& tag : m_tags)
 			if (error = tag->setDescription(m_ui->description->toPlainText()))

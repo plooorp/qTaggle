@@ -94,7 +94,7 @@ void NewFileDialog::accept()
 		if (progress.wasCanceled())
 			return;
 		QSharedPointer<File> file;
-		if (DBResult error = File::create(filePath, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
+		if (DBError error = File::create(filePath, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
 			continue;
 		for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
 			file->addTag(tag);

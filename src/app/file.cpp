@@ -58,14 +58,14 @@ void File::fetch()
 	sqlite3_finalize(stmt);
 }
 
-DBResult File::create(const QString& path, const QString& alias, const QString& comment, const QString& source, QSharedPointer<File>* out)
+DBError File::create(const QString& path, const QString& alias, const QString& comment, const QString& source, QSharedPointer<File>* out)
 {
 	if (!db->isOpen())
-		return DBResult(DBResult::DatabaseClosed);
+		return DBError(DBError::DatabaseClosed);
 	QFileInfo fileInfo(path);
 	QByteArray sha1 = sha1Digest(path);
 	if (sha1.isNull())
-		return DBResult(DBResult::FileIOError, "Failed to calculate SHA1 digest");
+		return DBError(DBError::FileIOError, "Failed to calculate SHA1 digest");
 	const char* sql = R"(
 		INSERT INTO file(path, name, alias, state, comment, source, sha1)
 		VALUES(?, ?, ?, ?, ?, ?, ?)
@@ -90,7 +90,7 @@ DBResult File::create(const QString& path, const QString& alias, const QString& 
 	if (rc != SQLITE_DONE)
 	{
 		db->rollback();
-		return DBResult(rc);
+		return DBError(rc);
 	}
 	db->commit();
 	if (out)
@@ -104,22 +104,22 @@ DBResult File::create(const QString& path, const QString& alias, const QString& 
 		}
 		sqlite3_finalize(stmt);
 	}
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::remove()
+DBError File::remove()
 {
 	if (!db->isOpen())
-		return DBResult(DBResult::DatabaseClosed);
+		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "DELETE FROM file WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	emit deleted();
-	return DBResult();
+	return DBError();
 }
 
 QSharedPointer<File> File::fromStmt(sqlite3_stmt* stmt)
@@ -133,35 +133,35 @@ QSharedPointer<File> File::fromStmt(sqlite3_stmt* stmt)
 	return file;
 }
 
-CheckResult File::check()
+CheckError File::check()
 {
-	CheckResult ok = CheckResult();
+	CheckError ok = CheckError();
 	QByteArray sha1 = sha1Digest(m_path);
 	if (!QFileInfo::exists(m_path))
 	{
-		if (DBResult error = setState(FileMissing))
-			return CheckResult(CheckResult::Fail, u"Failed to update file state to FileMissing"_s, &error);
+		if (DBError error = setState(FileMissing))
+			return CheckError(CheckError::Fail, u"Failed to update file state to FileMissing"_s, &error);
 	}
 	else if (sha1.isEmpty())
 	{
-		if (DBResult error = setState(Error))
-			return CheckResult(CheckResult::Fail, u"Failed to update state to Error"_s, &error);
+		if (DBError error = setState(Error))
+			return CheckError(CheckError::Fail, u"Failed to update state to Error"_s, &error);
 	}
 	else if (sha1 != m_sha1)
 	{
-		if (DBResult error = setState(ChecksumChanged))
-			return CheckResult(CheckResult::Fail, u"Failed to set state to ChecksumChanged"_s, &error);
+		if (DBError error = setState(ChecksumChanged))
+			return CheckError(CheckError::Fail, u"Failed to set state to ChecksumChanged"_s, &error);
 		ok.sha1 = sha1;
 	}
 	else
-		if (DBResult error = setState(Ok))
-			return CheckResult(CheckResult::Fail, u"Failed to set state back to Ok"_s, &error);
+		if (DBError error = setState(Ok))
+			return CheckError(CheckError::Fail, u"Failed to set state back to Ok"_s, &error);
 	updateChecked();
 	return ok;
 
 }
 
-DBResult File::addTag(const QSharedPointer<Tag>& tag)
+DBError File::addTag(const QSharedPointer<Tag>& tag)
 {
 	sqlite3_stmt* stmt;
 	const char* sql = "INSERT INTO file_tag(file_id, tag_id) VALUES(?, ?);";
@@ -172,7 +172,7 @@ DBResult File::addTag(const QSharedPointer<Tag>& tag)
 	sqlite3_finalize(stmt);
 	// ignore pk constraint error if the edge already exists
 	if (rc != SQLITE_DONE && rc != SQLITE_CONSTRAINT)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 	{
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
@@ -180,10 +180,10 @@ DBResult File::addTag(const QSharedPointer<Tag>& tag)
 	}
 	fetch();
 	tag->fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::removeTag(const QSharedPointer<Tag>& tag)
+DBError File::removeTag(const QSharedPointer<Tag>& tag)
 {
 	sqlite3_stmt* stmt;
 	const char* sql = "DELETE FROM file_tag WHERE file_id = ? AND tag_id = ?;";
@@ -193,7 +193,7 @@ DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 	{
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
@@ -201,10 +201,10 @@ DBResult File::removeTag(const QSharedPointer<Tag>& tag)
 	}
 	fetch();
 	tag->fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setAlias(const QString& alias)
+DBError File::setAlias(const QString& alias)
 {
 	QByteArray alias_bytes = alias.trimmed().toUtf8();
 	sqlite3_stmt* stmt;
@@ -214,14 +214,14 @@ DBResult File::setAlias(const QString& alias)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setPath(const QString& path)
+DBError File::setPath(const QString& path)
 {
 	QFileInfo file(path);
 
@@ -236,17 +236,17 @@ DBResult File::setPath(const QString& path)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setState(File::State state)
+DBError File::setState(File::State state)
 {
 	if (!db->isOpen() || state == m_state)
-		return DBResult();
+		return DBError();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET state = ? WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, state);
@@ -254,14 +254,14 @@ DBResult File::setState(File::State state)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setComment(const QString& comment)
+DBError File::setComment(const QString& comment)
 {
 	QByteArray comment_bytes = comment.trimmed().toUtf8();
 	sqlite3_stmt* stmt;
@@ -271,14 +271,14 @@ DBResult File::setComment(const QString& comment)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setSource(const QString& source)
+DBError File::setSource(const QString& source)
 {
 	QByteArray source_bytes = source.trimmed().toUtf8(); // validation
 	sqlite3_stmt* stmt;
@@ -288,14 +288,14 @@ DBResult File::setSource(const QString& source)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::setSHA1(const QByteArray& sha1)
+DBError File::setSHA1(const QByteArray& sha1)
 {
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET sha1 = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -304,14 +304,14 @@ DBResult File::setSHA1(const QByteArray& sha1)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult File::updateChecked()
+DBError File::updateChecked()
 {
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET checked = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -320,11 +320,11 @@ DBResult File::updateChecked()
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
 int64_t File::id() const

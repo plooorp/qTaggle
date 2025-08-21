@@ -28,7 +28,7 @@ EditTagDialog::~EditTagDialog()
 void EditTagDialog::accept()
 {
 	db->begin();
-	DBResult error;
+	DBError error;
 	if (m_ui->name->text() != m_tag->name())
 		if (error = m_tag->setName(m_ui->name->text()))
 			goto error;

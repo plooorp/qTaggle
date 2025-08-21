@@ -28,7 +28,7 @@ Database* Database::instance()
 	return m_instance;
 }
 
-DBResult Database::open(const QString& path)
+DBError Database::open(const QString& path)
 {
 	if (isOpen())
 		close();
@@ -36,7 +36,7 @@ DBResult Database::open(const QString& path)
 	if (int rc = sqlite3_open(path.toUtf8(), &m_con) != SQLITE_OK)
 	{
 		qCritical().nospace() << "Failed to open database at " << path << ": " << sqlite3_errstr(rc);
-		return DBResult(rc);
+		return DBError(rc);
 	}
 	m_path = path;
 	sqlite3_exec(m_con, "PRAGMA encoding = 'UTF-8';", 0, 0, 0);
@@ -56,7 +56,7 @@ DBResult Database::open(const QString& path)
 		{
 			rollback();
 			close();
-			return DBResult(rc);
+			return DBError(rc);
 		}
 		user_version++;
 	}
@@ -88,10 +88,10 @@ DBResult Database::open(const QString& path)
 	}
 	
 	emit opened(path);
-	return DBResult();
+	return DBError();
 }
 
-DBResult Database::close(bool clearLastOpened)
+DBError Database::close(bool clearLastOpened)
 {
 	int rc = sqlite3_close_v2(m_con);
 	if (rc == SQLITE_OK)
@@ -104,10 +104,10 @@ DBResult Database::close(bool clearLastOpened)
 		m_con = nullptr;
 		m_path = QString();
 		emit closed();
-		return DBResult();
+		return DBError();
 	}
 	qCritical() << "Failed to close database:" << sqlite3_errstr(rc);
-	return DBResult(rc);
+	return DBError(rc);
 }
 
 bool Database::isOpen()
@@ -120,19 +120,19 @@ bool Database::inTransaction() const
 	return m_inTransaction;
 }
 
-DBResult Database::begin()
+DBError Database::begin()
 {
 	int rc = sqlite3_exec(m_con, "BEGIN TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
 	{
 		m_inTransaction = true;
-		return DBResult();
+		return DBError();
 	}
 	qCritical() << sqlite3_errmsg(m_con);
-	return DBResult(rc);
+	return DBError(rc);
 }
 
-DBResult Database::commit()
+DBError Database::commit()
 {
 	int rc = sqlite3_exec(m_con, "COMMIT TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
@@ -140,13 +140,13 @@ DBResult Database::commit()
 		m_fetchOnRollback.clear();
 		m_inTransaction = false;
 		emit committed();
-		return DBResult();
+		return DBError();
 	}
 	qCritical() << sqlite3_errmsg(m_con);
-	return DBResult(rc);
+	return DBError(rc);
 }
 
-DBResult Database::rollback()
+DBError Database::rollback()
 {
 	int rc = sqlite3_exec(m_con, "ROLLBACK TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
@@ -156,10 +156,10 @@ DBResult Database::rollback()
 		m_fetchOnRollback.clear();
 		m_inTransaction = false;
 		emit rollbacked();
-		return DBResult();
+		return DBError();
 	}
 	qCritical() << sqlite3_errmsg(m_con);
-	return DBResult(rc);
+	return DBError(rc);
 }
 
 QString Database::path() const
@@ -303,7 +303,7 @@ void Database::addRecordToRollbackFetch(const QSharedPointer<Record>& record)
 		m_fetchOnRollback.append(record);
 }
 
-QStringList DBResult::m_code_str =
+QStringList DBError::m_code_str =
 {
 	u"Ok"_s,
 	u""_s, // sqlite3_errstr() is used instead

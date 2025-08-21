@@ -22,7 +22,7 @@ NewTagDialog::~NewTagDialog()
 
 void NewTagDialog::accept()
 {
-	if (DBResult error = Tag::create(m_ui->name->text(), m_ui->description->toPlainText(), m_ui->urls->values()))
+	if (DBError error = Tag::create(m_ui->name->text(), m_ui->description->toPlainText(), m_ui->urls->values()))
 	{
 		QMessageBox::warning(this, tr("Failed to create tag"), error.message);
 		return;

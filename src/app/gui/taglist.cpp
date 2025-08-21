@@ -58,7 +58,7 @@ void TagList::populate()
 	int limit = m_ui->resultsPerPage->value();
 	int offset = m_ui->paginator->page() * limit;
 	sqlite3_stmt* stmt;
-	int count = 0;
+	int64_t count = 0;
 	m_model->clear();
 
 	if (query.trimmed().isEmpty())
@@ -86,8 +86,7 @@ void TagList::populate()
 		QStringList query_parts = query.split(' ', Qt::SkipEmptyParts);
 		for (QString& part : query_parts)
 			part = part + u"*"_s;
-		QString query_norm = query_parts.join(' ');
-		QByteArray query_bytes = query_norm.toUtf8();
+		QByteArray query_bytes = query_parts.join(' ').toUtf8();
 		const char* sql = R"(
 			SELECT * FROM tag WHERE id IN (
 				SELECT ROWID FROM tag_search

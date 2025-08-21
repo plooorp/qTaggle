@@ -41,7 +41,7 @@ void EditFileDialog::accept()
 		existingTags.append(ft.tag());
 	QList<QSharedPointer<Tag>> newTags = m_ui->tagSelect->tags();
 
-	DBResult error;
+	DBError error;
 	db->begin();
 
 	QFileInfo newPath(QDir(m_ui->lineEdit_dir->text()), m_ui->lineEdit_fileName->text());

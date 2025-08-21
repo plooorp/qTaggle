@@ -1,12 +1,12 @@
 #pragma once
 
-#include <QString>
 #include <QList>
+#include <QString>
 #include "app/globals.h"
 
 struct Error
 {
-	explicit Error(const QString& type);
+	explicit Error(const QString& type, const Error* parent);
 	explicit Error(const QString& type, int code, const Error* parent = nullptr);
 	explicit Error(const QString& type, int code, const QString& message, const Error* parent = nullptr);
 	enum Code { Ok = 0, Fail };
@@ -15,8 +15,5 @@ struct Error
 	QString baseMessage;
 	QString message;
 	QList<Error> parents;
-	explicit operator bool() const
-	{
-		return code != 0;
-	}
+	explicit operator bool() const;
 };

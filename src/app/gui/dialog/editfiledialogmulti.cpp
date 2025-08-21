@@ -38,7 +38,7 @@ EditFileDialogMulti::~EditFileDialogMulti()
 void EditFileDialogMulti::accept()
 {
 	db->begin();
-	DBResult error;
+	DBError error;
 	if (m_ui->directoryCheckBox->isChecked())
 	{
 		for (QSharedPointer<File>& file : m_files)

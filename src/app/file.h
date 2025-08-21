@@ -9,16 +9,16 @@
 #include "app/filetag.h"
 #include "app/error.h"
 
-struct CheckResult : public Error
+struct CheckError : public Error
 {
-	explicit CheckResult()
-		: Error(u"CheckResult"_s, Ok, nullptr)
+	explicit CheckError()
+		: Error(u"CheckError"_s, Ok, nullptr)
 	{}
-	explicit CheckResult(Code code, const Error* parent = nullptr)
-		: Error(u"CheckResult"_s, code, parent)
+	explicit CheckError(Code code, const Error* parent = nullptr)
+		: Error(u"CheckError"_s, code, parent)
 	{}
-	explicit CheckResult(Code code, const QString& message, const Error* parent = nullptr)
-		: Error(u"CheckResult"_s, code, message, parent)
+	explicit CheckError(Code code, const QString& message, const Error* parent = nullptr)
+		: Error(u"CheckError"_s, code, message, parent)
 	{}
 	// holds the file's new checksum when a mismatch is detected
 	QByteArray sha1;
@@ -30,7 +30,7 @@ class File final : public QObject, public Record
 
 public:
 	~File();
-	static DBResult create(const QString& path, const QString& alias = QString(), const QString& comment = QString()
+	static DBError create(const QString& path, const QString& alias = QString(), const QString& comment = QString()
 		, const QString& source = QString(), QSharedPointer<File>* out = nullptr);
 	static QSharedPointer<File> fromStmt(sqlite3_stmt* stmt);
 	void fetch();
@@ -41,30 +41,30 @@ public:
 		FileMissing,
 		ChecksumChanged
 	};
-	CheckResult check();
+	CheckError check();
 	static QString stateString(State state);
-	DBResult addTag(const QSharedPointer<Tag>& tag);
-	DBResult removeTag(const QSharedPointer<Tag>& tag);
+	DBError addTag(const QSharedPointer<Tag>& tag);
+	DBError removeTag(const QSharedPointer<Tag>& tag);
 	int64_t id() const;
 	QString name() const;
 	QString alias() const;
-	DBResult setAlias(const QString& alias);
+	DBError setAlias(const QString& alias);
 	QString path() const;
-	DBResult setPath(const QString& path);
+	DBError setPath(const QString& path);
 	State state() const;
-	DBResult setState(File::State state);
+	DBError setState(File::State state);
 	QString comment() const;
-	DBResult setComment(const QString& comment);
+	DBError setComment(const QString& comment);
 	QString source() const;
-	DBResult setSource(const QString& source);
+	DBError setSource(const QString& source);
 	QByteArray sha1() const;
-	DBResult setSHA1(const QByteArray&);
+	DBError setSHA1(const QByteArray&);
 	QDateTime created() const;
 	QDateTime modified() const;
 	QDateTime checked() const;
-	DBResult updateChecked();
+	DBError updateChecked();
 	QList<FileTag> tags() const;
-	DBResult remove();
+	DBError remove();
 
 signals:
 	void updated();

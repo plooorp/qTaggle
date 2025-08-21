@@ -1,8 +1,7 @@
 #include "error.h"
-#include <iostream>
 
-Error::Error(const QString& type)
-	: Error(type, Ok, nullptr)
+Error::Error(const QString& type, const Error* parent)
+	: Error(type, Ok, parent)
 {}
 
 Error::Error(const QString& type, int code, const Error* parent)
@@ -22,4 +21,9 @@ Error::Error(const QString& type, int code, const QString& message, const Error*
 		for (int i = 0; i < parents.size(); ++i)
 			this->message += u"\n    "_s + QString::number(i + 1) + u": "_s + parents.at(i).baseMessage;
 	}
+}
+
+Error::operator bool() const
+{
+	return code != 0;
 }

@@ -17,7 +17,7 @@ class Tag final : public QObject, public Record
 
 public:
 	~Tag();
-	static DBResult create(const QString& name, const QString& description = QString()
+	static DBError create(const QString& name, const QString& description = QString()
 		, const QStringList& urls = QStringList(), QSharedPointer<Tag>* out = nullptr);
 	static QSharedPointer<Tag> fromStmt(sqlite3_stmt* stmt);
 	static QSharedPointer<Tag> fromID(const int64_t id);
@@ -25,15 +25,15 @@ public:
 	void fetch();
 	int64_t id() const;
 	QString name() const;
-	DBResult setName(const QString& name);
+	DBError setName(const QString& name);
 	QString description() const;
-	DBResult setDescription(const QString& description);
+	DBError setDescription(const QString& description);
 	QStringList urls() const;
-	DBResult setURLs(const QStringList& urls);
+	DBError setURLs(const QStringList& urls);
 	int64_t degree() const;
 	QDateTime created() const;
 	QDateTime modified() const;
-	DBResult remove();
+	DBError remove();
 
 signals:
 	void updated();

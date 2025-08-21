@@ -43,14 +43,14 @@ void Tag::fetch()
 	emit updated();
 }
 
-DBResult Tag::create(const QString& name, const QString& description, const QStringList& urls
+DBError Tag::create(const QString& name, const QString& description, const QStringList& urls
 	, QSharedPointer<Tag>* out)
 {
 	if (!db->isOpen())
-		return DBResult(DBResult::DatabaseClosed);
+		return DBError(DBError::DatabaseClosed);
 	QString name_norm = normalizeName(name);
 	if (name_norm.isEmpty())
-		return DBResult(DBResult::ValueError, "Name cannot be empty");
+		return DBError(DBError::ValueError, "Name cannot be empty");
 	QString urls_str;
 	if (urls.isEmpty())
 		urls_str = "";
@@ -77,7 +77,7 @@ DBResult Tag::create(const QString& name, const QString& description, const QStr
 	if (rc != SQLITE_DONE)
 	{
 		db->rollback();
-		return DBResult(rc);
+		return DBError(rc);
 	}
 	db->commit();
 	if (out)
@@ -91,7 +91,7 @@ DBResult Tag::create(const QString& name, const QString& description, const QStr
 		}
 		sqlite3_finalize(stmt);
 	}
-	return DBResult();
+	return DBError();
 }
 
 QSharedPointer<Tag> Tag::fromStmt(sqlite3_stmt* stmt)
@@ -143,26 +143,26 @@ QSharedPointer<Tag> Tag::fromName(const QString& name)
 	return tag;
 }
 
-DBResult Tag::remove()
+DBError Tag::remove()
 {
 	if (!db->isOpen())
-		return DBResult(DBResult::DatabaseClosed);
+		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "DELETE FROM tag WHERE id = ?;", -1, &stmt, nullptr);
 	sqlite3_bind_int64(stmt, 1, m_id);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	emit deleted();
-	return DBResult();
+	return DBError();
 }
 
-DBResult Tag::setName(const QString& name)
+DBError Tag::setName(const QString& name)
 {
 	QString name_norm = normalizeName(name);
 	if (name.isEmpty())
-		return DBResult(DBResult::ValueError, "Name cannot be empty");
+		return DBError(DBError::ValueError, "Name cannot be empty");
 
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE tag SET name = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -172,14 +172,14 @@ DBResult Tag::setName(const QString& name)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult Tag::setDescription(const QString& description)
+DBError Tag::setDescription(const QString& description)
 {
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE tag SET description = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -189,14 +189,14 @@ DBResult Tag::setDescription(const QString& description)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
-DBResult Tag::setURLs(const QStringList& urls)
+DBError Tag::setURLs(const QStringList& urls)
 {
 	QString urls_str;
 	if (urls.isEmpty())
@@ -221,11 +221,11 @@ DBResult Tag::setURLs(const QStringList& urls)
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (rc != SQLITE_DONE)
-		return DBResult(rc);
+		return DBError(rc);
 	if (db->inTransaction())
 		db->addRecordToRollbackFetch(m_instances.value(m_id));
 	fetch();
-	return DBResult();
+	return DBError();
 }
 
 int64_t Tag::id() const
