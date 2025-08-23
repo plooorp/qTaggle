@@ -8,6 +8,7 @@
 #include <QCompleter>
 #include <QLabel>
 #include <QTreeWidget>
+#include <QProgressDialog>
 
 #include "app/database.h"
 #include "app/file.h"
@@ -91,13 +92,26 @@ void FileList::checkSelected()
 {
 	QList<QSharedPointer<File>> files = selectedFiles();
 	QList<std::tuple<QSharedPointer<File>, CheckError>> checksumErrors;
+	
+	QProgressDialog progress(tr("Checking files..."), tr("Abort"), 0, files.size(), this);
+	progress.setWindowModality(Qt::ApplicationModal);
 	for (int i = 0; i < files.size(); ++i)
 	{
 		QSharedPointer<File>& file = files[i];
+		progress.setValue(i);
+		QString path = file->path();
+		progress.setLabelText(tr("Checking file: %1").arg(
+			path.size() > 32
+			? path.first(8) + u"..."_s + path.last(24)
+			: path
+		));
+		if (progress.wasCanceled())
+			break;
 		CheckError error = file->check();
 		if (!error && file->state() == File::ChecksumChanged)
 			checksumErrors.append({ file, error });
 	}
+	progress.setValue(files.size());
 
 	if (!checksumErrors.isEmpty())
 	{
@@ -164,62 +178,14 @@ void FileList::populate()
 		LEFT JOIN file_tag ON file_tag.file_id = file.id
 		WHERE :tags AND :search;
 	)"_s;
-	QByteArrayList include, exclude;
-	if (tags.isEmpty())
-	{
-		sql.replace(u":tags"_s, u"1"_s);
-		sql_count.replace(u":tags"_s, u"1"_s);
-	}
-	else
-	{
-		for (const QString& tag : tags.split(' ', Qt::SkipEmptyParts))
-		{
-			if (tag == u"!"_s)
-				continue;
-			else if (tag.startsWith('!'))
-				exclude.append(tag.mid(1).toUtf8());
-			else
-				include.append(tag.toUtf8());
-		}
-			sql.replace(u":tags"_s, uR"(
-				file_tag.tag_id IN (
-				SELECT id FROM tag :include_cond
-					EXCEPT
-					SELECT id FROM tag WHERE name IN (:exclude)
-				)
-			)"_s);
-			sql_count.replace(u":tags"_s, uR"(
-				file_tag.tag_id IN (
-				SELECT id FROM tag :include_cond
-					EXCEPT
-					SELECT id FROM tag WHERE name IN (:exclude)
-				)
-			)"_s);
-		if (include.isEmpty())
-		{
-			sql.remove(u":include_cond"_s);
-			sql_count.remove(u":include_cond"_s);
-		}
-		else
-		{
-			QStringList placeholders(include.size(), u"?"_s);
-			QString condition = u"WHERE name IN ("_s + placeholders.join(u", "_s) + u")"_s;
-			sql.replace(u":include_cond"_s, condition);
-			sql_count.replace(u":include_cond"_s, condition);
-		}
-			if (exclude.isEmpty())
-			{
-				sql.remove(u":exclude"_s);
-				sql_count.remove(u":exclude"_s);
-			}
-			else
-			{
-			QString placeholders = QStringList(exclude.size(), u"?"_s).join(u", ");
-			sql.replace(u":exclude"_s, placeholders);
-			sql_count.replace(u":exclude"_s, placeholders);
-		}
-	}
 
+	// filer by tag
+	QByteArrayList include, exclude;
+	QString replacement = parseTags(tags, include, exclude);
+	sql.replace(u":tags"_s, replacement);
+	sql_count.replace(u":tags"_s, replacement);
+
+	// filter by name
 	if (query.isEmpty())
 	{
 		sql.replace(u":search"_s, u"1"_s);
@@ -291,6 +257,51 @@ void FileList::populate()
 		m_ui->paginator->setMaxPage(maxPage < 0 ? 0 : maxPage);
 	}
 	sqlite3_finalize(stmt);
+}
+
+QString FileList::parseTags(const QString& query, QByteArrayList& include, QByteArrayList& exclude)
+{
+	if (query.isEmpty())
+		return u"1"_s;
+	for (const QString& tag : query.split(' ', Qt::SkipEmptyParts))
+	{
+		if (tag == u"!"_s)
+			continue;
+		else if (tag.startsWith('!'))
+			exclude.append(tag.mid(1).toUtf8());
+		else
+			include.append(tag.toUtf8());
+	}
+	if (include.isEmpty() && exclude.isEmpty())
+		return u"1"_s;
+
+	QString sql = uR"(
+		(file_tag.tag_id IN (
+			SELECT id FROM tag :include_cond
+			EXCEPT
+			SELECT id FROM tag WHERE name IN (:exclude)
+		) :null_cond)
+	)"_s;
+	if (include.isEmpty())
+	{
+		sql.remove(u":include_cond"_s);
+		sql.replace(u":null_cond"_s, u"OR file_tag.tag_id IS NULL"_s);
+	}
+	else
+	{
+		QStringList placeholders(include.size(), u"?"_s);
+		QString condition = u"WHERE name IN ("_s + placeholders.join(u", "_s) + u")"_s;
+		sql.replace(u":include_cond"_s, condition);
+		sql.remove(u":null_cond"_s);
+	}
+	if (exclude.isEmpty())
+		sql.remove(u":exclude"_s);
+	else
+	{
+		QString placeholders = QStringList(exclude.size(), u"?"_s).join(u", ");
+		sql.replace(u":exclude"_s, placeholders);
+	}
+	return sql;
 }
 
 void FileList::actionAdd_triggered()

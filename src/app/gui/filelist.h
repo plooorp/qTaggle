@@ -35,6 +35,7 @@ private:
 	Ui::FileList* m_ui;
 	FileTableModel* m_model;
 	void populate();
+	QString parseTags(const QString& query, QByteArrayList& include, QByteArrayList& exclude);
 	void readSettings();
 	void writeSettings();
 };
