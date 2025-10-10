@@ -16,7 +16,7 @@ Database::~Database()
 	m_instance = nullptr;
 }
 
-sqlite3* Database::con()
+sqlite3* Database::con() const
 {
 	return m_con;
 }
@@ -36,6 +36,7 @@ DBError Database::open(const QString& path)
 	if (int rc = sqlite3_open(path.toUtf8(), &m_con) != SQLITE_OK)
 	{
 		qCritical().nospace() << "Failed to open database at " << path << ": " << sqlite3_errstr(rc);
+		close(); // connection still returned even in the event of error
 		return DBError(rc);
 	}
 	m_path = path;

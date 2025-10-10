@@ -54,7 +54,7 @@ class Database final : public QObject
 public:
 	static Database* instance();
 	~Database();
-	sqlite3* con();
+	sqlite3* con() const;
 	DBError open(const QString& path);
 	// clearLastOpened should be false only on application close
 	DBError close(bool clearLastOpened = true);
