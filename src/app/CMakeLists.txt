@@ -1,3 +1,6 @@
+add_compile_definitions(SQLITE_ENABLE_FTS5)
+add_library(sqlite3 STATIC ${PROJECT_SOURCE_DIR}/lib/sqlite3/sqlite3.c)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR}
 	COMPONENTS
