@@ -49,31 +49,37 @@ DBError Database::open(const QString& path)
 	sqlite3_step(stmt);
 	int user_version = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
+
+	if (user_version > CURRENT_USER_VERSION)
+	{
+		close();
+		return DBError(DBError::UnsupportedVersion, u"Database version is newer than the application supports."_s);
+	}
+
 	begin();
 	switch (user_version)
 	{
 	case 0:
-		if (int rc = updateSchema_0to1() != SQLITE_OK)
+		if (int rc = migrate_0to1() != SQLITE_OK)
 		{
 			rollback();
 			close();
 			return DBError(rc);
 		}
-		user_version++;
 	}
 	commit();
-	const std::string q = "PRAGMA user_version = " + std::to_string(user_version) + ";";
+	const std::string q = "PRAGMA user_version = " + std::to_string(CURRENT_USER_VERSION) + ";";
 	sqlite3_exec(m_con, q.c_str(), 0, 0, 0);
 
 	QSettings settings;
-	// make this database auto-open on application next launch
+	// make this database automatically open on next launch
 	settings.setValue("lastOpened", path);
 	// add this database to recently opened history
 	QStringList recentlyOpened = settings.value("GUI/MainWindow/recentlyOpened", QStringList()).toStringList();
 	int i = recentlyOpened.indexOf(path);
 	if (i == -1)
 	{
-		// new history entry
+		// add new history entry
 		recentlyOpened.insert(0, path);
 		const int MAX_RECENTLY_OPENED_HISTORY_SIZE = 6;
 		if (recentlyOpened.size() > MAX_RECENTLY_OPENED_HISTORY_SIZE)
@@ -82,7 +88,7 @@ DBError Database::open(const QString& path)
 	}
 	else if (i > 0)
 	{
-		// move old history entry to first
+		// move existing entry to top of list
 		recentlyOpened.remove(i);
 		recentlyOpened.insert(0, path);
 		settings.setValue("GUI/MainWindow/recentlyOpened", recentlyOpened);
@@ -94,7 +100,7 @@ DBError Database::open(const QString& path)
 
 DBError Database::close(bool clearLastOpened)
 {
-	int rc = sqlite3_close_v2(m_con);
+	int rc = sqlite3_close(m_con);
 	if (rc == SQLITE_OK)
 	{
 		if (clearLastOpened)
@@ -177,7 +183,7 @@ QString Database::configPath() const
 	return iniFile.absoluteFilePath();
 }
 
-int Database::updateSchema_0to1()
+int Database::migrate_0to1()
 {
 	const char* sql = R"(
 		CREATE TABLE file(
@@ -310,6 +316,8 @@ QStringList DBError::m_code_str =
 	u""_s, // sqlite3_errstr() is used instead
 	u"Database is closed"_s,
 	u"Invalid parameter value"_s,
-	u"File read/write error"_s
+	u"File read/write error"_s,
+	u"Unsupported database version"_s
 };
 Database* Database::m_instance = nullptr;
+int Database::CURRENT_USER_VERSION = 1;

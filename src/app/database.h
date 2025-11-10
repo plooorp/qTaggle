@@ -17,7 +17,8 @@ public:
 		SQLiteError,
 		DatabaseClosed,
 		ValueError,
-		FileIOError
+		FileIOError,
+		UnsupportedVersion
 	};
 	explicit DBError(const Error* parent = nullptr)
 		: Error(u"DatabaseError"_s, Ok, m_code_str[Ok], parent)
@@ -76,9 +77,10 @@ signals:
 private:
 	Database();
 	static Database* m_instance;
+	static int CURRENT_USER_VERSION;
 	QString m_path;
 	sqlite3* m_con;
 	bool m_inTransaction;
 	QList<QSharedPointer<Record>> m_fetchOnRollback;
-	int updateSchema_0to1();
+	int migrate_0to1();
 };
