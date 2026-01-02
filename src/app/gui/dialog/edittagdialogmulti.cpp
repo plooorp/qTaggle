@@ -3,28 +3,22 @@
 
 #include <QMessageBox>
 
-EditTagDialogMulti::EditTagDialogMulti(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
+EditTagDialogMulti::EditTagDialogMulti(const QList<Tag>& tags, QWidget* parent)
 	: QDialog(parent)
 	, m_ui(new Ui::EditTagDialogMulti)
 	, m_tags(tags)
 {
-	Q_ASSERT(tags.size() >= 1);
+	Q_ASSERT(tags.size() > 0);
 	m_ui->setupUi(this);
 
 	connect(m_ui->buttonBox, &QDialogButtonBox::accepted, this, &EditTagDialogMulti::accept);
 	connect(m_ui->buttonBox, &QDialogButtonBox::rejected, this, &EditTagDialogMulti::reject);
 
-	QStringList names;
-	for (const QSharedPointer<Tag>& tag : m_tags)
-		names.append(tag->name());
-	QString names_str = names.join(", ");
-	
-	if (tags.size() <= 3)
+	if (m_tags.size() <= 3)
 	{
-		QString title = tr("Editing ") + m_tags.first()->name();
-		for (const QSharedPointer<Tag>& tag : m_tags)
-			title += ", " + tag->name();
-		setWindowTitle(title);
+		QString title = tr("Editing") + m_tags.first().name();
+		for (int i = 1; i < m_tags.size(); i++)
+			title += u", "_s + m_tags[i].name();
 	}
 	else
 		setWindowTitle(tr("Editing ") + QString::number(m_tags.size()) + tr(" tags"));
@@ -40,12 +34,12 @@ void EditTagDialogMulti::accept()
 	db->begin();
 	DBError error;
 	if (m_ui->descriptionGroup->isChecked())
-		for (const QSharedPointer<Tag>& tag : m_tags)
-			if (error = tag->setDescription(m_ui->description->toPlainText()))
+		for (const Tag& tag : m_tags)
+			if (error = tag.setDescription(m_ui->description->toPlainText()))
 				goto error;
 	if (m_ui->urlsGroup->isChecked())
-		for (QSharedPointer<Tag>& tag : m_tags)
-			if (error = tag->setURLs(m_ui->urls->values()))
+		for (const Tag& tag : m_tags)
+			if (error = tag.setURLs(m_ui->urls->values()))
 				goto error;
 	db->commit();
 	return QDialog::accept();

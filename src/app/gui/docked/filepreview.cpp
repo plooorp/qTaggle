@@ -5,9 +5,8 @@
 
 FilePreview::FilePreview(FileList* fileList, QWidget* parent)
 	: QWidget(parent)
-	, m_fileList(fileList)
 {
-	connect(m_fileList, &FileList::selectionChanged, this, &FilePreview::updatePreview);
+	connect(fileList, &FileList::selectionChanged, this, &FilePreview::updatePreview);
 
 	m_label = new QLabel(this);
 	m_label->setText(tr("No preview available"));
@@ -19,18 +18,16 @@ FilePreview::FilePreview(FileList* fileList, QWidget* parent)
 	setLayout(layout);
 }
 
-void FilePreview::updatePreview()
+void FilePreview::updatePreview(const QList<File>& selected)
 {
-	if (!m_fileList)
+	if (selected.isEmpty())
 		return clear();
-	QList<QSharedPointer<File>> files = m_fileList->selectedFiles();
-	if (files.isEmpty())
+	File file = selected.first();
+	QString path = file.path();
+	QFileInfo qpath(file.path());
+	if (!QImageReader::supportedImageFormats().contains(qpath.suffix()))
 		return clear();
-	QSharedPointer<File> file = files.first();
-	QFileInfo path(file->path());
-	if (!QImageReader::supportedImageFormats().contains(path.suffix()))
-		return clear();
-	m_pixmap = QPixmap(file->path());
+	m_pixmap = QPixmap(path);
 	if (m_pixmap.isNull())
 		return clear();
 	// margin so that the widget can still be rescaled

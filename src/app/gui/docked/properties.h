@@ -14,15 +14,14 @@ class Properties : public QStackedWidget
 	Q_OBJECT
 
 public:
-	explicit Properties(MainWindow* mainWindow, FileList* fileList, TagList* tagList, QWidget* parent);
+	explicit Properties(const MainWindow* mainWindow, FileList* fileList, TagList* tagList, QWidget* parent);
 
 private:
-	QPointer<MainWindow> m_mainWindow;
-	QPointer<FileList> m_fileList;
-	QPointer<TagList> m_tagList;
+	FileList* m_fileList;
+	TagList* m_tagList;
 	FileProperties* m_fileProperties;
 	TagProperties* m_tagProperties;
-	void populateFile();
-	void populateTag();
+	void populateFile(const QList<File>& files);
+	void populateTag(const QList<Tag>& tags);
 	void clear();
 };

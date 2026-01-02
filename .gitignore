@@ -11,7 +11,7 @@ lib/sqlite3/*
 *.exe
 
 # Cmake build directory
-out/
+build/
 
 CMakeLists.txt.user*
 CMakeCache.txt

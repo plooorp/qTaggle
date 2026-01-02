@@ -12,10 +12,10 @@
 #include "app/database.h"
 
 TagSelect::TagSelect(QWidget *parent)
-	: TagSelect(QList<QSharedPointer<Tag>>(), parent)
+	: TagSelect(QList<Tag>(), parent)
 {}
 
-TagSelect::TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
+TagSelect::TagSelect(const QList<Tag>& tags, QWidget* parent)
 	: m_ui(new Ui::TagSelect)
 	, m_model(new TagTableModel(this))
 {
@@ -24,6 +24,12 @@ TagSelect::TagSelect(const QList<QSharedPointer<Tag>>& tags, QWidget* parent)
 	connect(m_ui->buttonAdd, &QPushButton::clicked, this, &TagSelect::add);
 	connect(m_ui->actionRemove, &QAction::triggered, this, &TagSelect::remove);
 	connect(m_ui->lineEdit, &QLineEdit::returnPressed, this, &TagSelect::add);
+	//connect(m_ui->lineEdit, &QLineEdit::returnPressed, this, [this]() -> void
+	//	{
+	//		if (!m_ui->lineEdit->completer()->popup()->isVisible())
+	//			TagSelect::add();
+	//	});
+	//connect(m_ui->lineEdit->completer(), QOverload<const QString& >::of(&QCompleter::activated), this, &TagSelect::add);
 	connect(m_ui->treeView, &QTreeView::doubleClicked, this, &TagSelect::remove);
 	connect(m_ui->treeView, &QWidget::customContextMenuRequested, this, &TagSelect::showContextMenu);
 
@@ -70,13 +76,21 @@ void TagSelect::add()
 	const QString query = m_ui->lineEdit->text()
 		.trimmed()
 		.toLower();
-	if (const QSharedPointer<Tag> tag = Tag::fromName(query))
+	const Tag tag = Tag::fromName(query);
+	// use this instead of tag.exists because Tag::fromName already performs a
+	// query that verifies the tag does exist
+	if (tag.id() < 0)
 	{
-		m_model->addTag(tag);
-		m_ui->lineEdit->clear();
+		QMessageBox::warning(this, qApp->applicationName(), tr("Unknown tag: %1").arg(query));
+		return;
 	}
-	else
-		QMessageBox::warning(this, qApp->applicationName(), tr("Unknown tag: ") + query);
+	if (m_model->contains(tag))
+	{
+		QMessageBox::warning(this, qApp->applicationName(), tr("%1 is already selected").arg(query));
+		return;
+	}
+	m_model->addTag(tag);
+	m_ui->lineEdit->clear();
 }
 
 void TagSelect::remove()
@@ -91,15 +105,15 @@ void TagSelect::remove()
 		m_model->removeTag(index.row());
 }
 
-QList<QSharedPointer<Tag>> TagSelect::tags()
+QList<Tag> TagSelect::tags()
 {
 	return m_model->tags();
 }
 
-void TagSelect::setTags(const QList<QSharedPointer<Tag>>& tags)
+void TagSelect::setTags(const QList<Tag>& tags)
 {
 	m_model->clear();
-	for (const QSharedPointer<Tag>& tag : tags)
+	for (const Tag& tag : tags)
 		m_model->addTag(tag);
 }
 
@@ -126,8 +140,8 @@ void TagSelect::importTags()
 		QStringList invalidTags;
 		for (const QString& name : dialog.textValue().trimmed().split(' '))
 		{
-			QSharedPointer<Tag> tag = Tag::fromName(name);
-			if (tag)
+			Tag tag = Tag::fromName(name);
+			if (tag.exists())
 			{
 				if (!m_model->contains(tag))
 					m_model->addTag(tag);
@@ -145,8 +159,8 @@ void TagSelect::exportTags()
 {
 	QClipboard* clipboard = qApp->clipboard();
 	QStringList tags;
-	for (const QSharedPointer<Tag> tag : m_model->tags())
-		tags.append(tag->name());
+	for (const Tag& tag : m_model->tags())
+		tags.append(tag.name());
 	clipboard->setText(tags.join(' '));
 }
 

@@ -6,13 +6,14 @@
 #include <QDateTime>
 
 #include "app/database.h"
-#include "app/filetag.h"
 #include "app/error.h"
+#include "app/filetag.h"
+#include "app/tag.h"
 
 struct CheckError : public Error
 {
-	explicit CheckError()
-		: Error(u"CheckError"_s, Ok, nullptr)
+	explicit CheckError(const Error* parent = nullptr)
+		: Error(u"CheckError"_s, Ok, parent)
 	{}
 	explicit CheckError(Code code, const Error* parent = nullptr)
 		: Error(u"CheckError"_s, code, parent)
@@ -24,16 +25,13 @@ struct CheckError : public Error
 	QByteArray sha1;
 };
 
-class File final : public QObject, public Record
+struct File
 {
-	Q_OBJECT
-
 public:
-	~File();
+	File();
+	File(int64_t id);
 	static DBError create(const QString& path, const QString& alias = QString(), const QString& comment = QString()
-		, const QString& source = QString(), QSharedPointer<File>* out = nullptr);
-	static QSharedPointer<File> fromStmt(sqlite3_stmt* stmt);
-	void fetch();
+		, const QString& source = QString(), File* out = nullptr);
 	enum State
 	{
 		Ok = 0,
@@ -41,51 +39,59 @@ public:
 		FileMissing,
 		ChecksumChanged
 	};
-	CheckError check();
-	static QString stateString(State state);
-	DBError addTag(const QSharedPointer<Tag>& tag);
-	DBError removeTag(const QSharedPointer<Tag>& tag);
+	static const QStringList stateString;
+	static int64_t countByState(File::State state);
+	//static QString stateString(State state);
+	bool exists() const;
+	CheckError check() const;
 	int64_t id() const;
 	QString name() const;
 	QString alias() const;
-	DBError setAlias(const QString& alias);
+	QString displayName() const;
+	DBError setAlias(const QString& alias) const;
 	QString path() const;
-	DBError setPath(const QString& path);
+	QString dir() const;
+	DBError setPath(const QString& path) const;
 	State state() const;
-	DBError setState(File::State state);
+	DBError setState(File::State state) const;
 	QString comment() const;
-	DBError setComment(const QString& comment);
+	DBError setComment(const QString& comment) const;
 	QString source() const;
-	DBError setSource(const QString& source);
+	DBError setSource(const QString& source) const;
 	QByteArray sha1() const;
-	DBError setSHA1(const QByteArray&);
+	DBError setSHA1(const QByteArray&) const;
 	QDateTime created() const;
 	QDateTime modified() const;
 	QDateTime checked() const;
-	DBError updateChecked();
+	DBError updateChecked() const;
 	QList<FileTag> tags() const;
-	DBError remove();
-
-signals:
-	void updated();
-	void deleted();
+	DBError addTag(const Tag& tag) const;
+	DBError removeTag(const Tag& tag) const;
+	DBError setTags(const QList<Tag>& tags) const;
+	DBError remove() const;
+	bool operator==(const File& other) const
+	{
+		return this->id() == other.id();
+	}
+	bool operator!=(const File& other) const
+	{
+		return this->id() != other.id();
+	}
 
 private:
-	File(sqlite3_stmt* stmt);
 	static const int SHA1_DIGEST_SIZE_BYTES = 20;
-	static QMap<int64_t, QWeakPointer<File>> m_instances;
-	static QStringList m_stateString;
 	static QByteArray sha1Digest(const QString& path);
-	void initFile(sqlite3_stmt* stmt);
 	int64_t m_id;
-	QString m_path;
-	QString m_alias;
-	State m_state;
-	QString m_comment;
-	QString m_source;
-	QByteArray m_sha1;
-	QDateTime m_created;
-	QDateTime m_modified;
-	QDateTime m_checked;
-	QList<FileTag> m_tags;
+	DBError updateModified() const;
 };
+
+namespace std
+{
+	template <>
+	struct hash<File> {
+		std::size_t operator()(const File& file) const noexcept
+		{
+			return file.id();
+		}
+	};
+}

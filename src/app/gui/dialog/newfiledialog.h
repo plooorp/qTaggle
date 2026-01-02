@@ -14,7 +14,7 @@ class NewFileDialog : public QDialog
 
 public:
 	explicit NewFileDialog(QWidget* parent = nullptr, Qt::WindowFlags = { 0 });
-	~NewFileDialog();
+	virtual ~NewFileDialog() override;
 
 private slots:
 	void accept() override;

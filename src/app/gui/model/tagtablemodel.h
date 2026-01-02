@@ -9,29 +9,29 @@ class TagTableModel : public QAbstractTableModel
 
 public:
 	explicit TagTableModel(QObject* parent = nullptr);
-	int rowCount(const QModelIndex& parent) const override;
-	int columnCount(const QModelIndex& parent) const override;
-	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
-	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-	void addTag(const QSharedPointer<Tag>& tag);
-	bool removeTag(const QSharedPointer<Tag>& tag);
-	bool removeTag(int row);
-	QSharedPointer<Tag> tagAt(int row) const;
-	QList<QSharedPointer<Tag>> tags();
-	bool contains(const QSharedPointer<Tag>& tag) const;
-	void clear();
-	void sort(int column, Qt::SortOrder order) override;
-
-private:
-	QList<QSharedPointer<Tag>> m_tags;
 	enum Column
 	{
-		Name = 0,
+		ID = 0,
+		Name,
 		Description,
-		ID,
-		URLs,
 		Degree,
 		Created,
 		Modified
 	};
+	static const QStringList columnString;
+	int rowCount(const QModelIndex& parent) const override;
+	int columnCount(const QModelIndex& parent) const override;
+	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+	void addTag(const Tag tag);
+	bool removeTag(const Tag tag);
+	bool removeTag(int row);
+	Tag tagAt(int row) const;
+	QList<Tag> tags() const;
+	bool contains(const Tag tag) const;
+	void clear();
+	void sort(int column, Qt::SortOrder order) override;
+
+private:
+	QList<Tag> m_tags;
 };

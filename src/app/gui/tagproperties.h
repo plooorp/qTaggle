@@ -13,16 +13,16 @@ class TagProperties : public QWidget
 	Q_OBJECT
 
 public:
-	explicit TagProperties(const QSharedPointer<Tag>& tag, QWidget* parent = nullptr);
+	explicit TagProperties(const Tag& tag, QWidget* parent = nullptr);
 	explicit TagProperties(QWidget* parent = nullptr);
-	~TagProperties();
-	QSharedPointer<Tag> tag() const;
-	void setTag(const QSharedPointer<Tag>& tag);
+	virtual ~TagProperties() override;
+	Tag tag() const;
+	void setTag(const Tag& tag);
 	void clear();
 
 private:
 	Ui::TagProperties* m_ui;
-	QSharedPointer<Tag> m_tag;
+	Tag m_tag;
 	void populate();
 	void depopulate();
 };

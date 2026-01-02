@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	m_ui.setupUi(this);
 
-	m_ui.filterDock->setWidget(new Filters(this));
+	m_ui.filterDock->setWidget(new Filters(this, m_ui.fileList, this));
 	m_ui.filePreviewDock->setWidget(new FilePreview(m_ui.fileList, this));
 	m_ui.propertiesDock->setWidget(new Properties(this, m_ui.fileList, m_ui.tagList, this));
 
@@ -49,8 +49,10 @@ MainWindow::MainWindow(QWidget *parent)
 	updateRecentlyOpened();
 }
 
-MainWindow::~MainWindow()
-{}
+MainWindow::Tab MainWindow::currentTab() const
+{
+	return static_cast<Tab>(m_ui.tabWidget->currentIndex());
+}
 
 void MainWindow::actionAddFile_triggered()
 {

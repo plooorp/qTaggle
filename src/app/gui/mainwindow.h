@@ -13,9 +13,9 @@ class MainWindow final : public QMainWindow
 	Q_OBJECT
 
 public:
-	MainWindow(QWidget *parent = nullptr);
-	~MainWindow();
+	explicit MainWindow(QWidget *parent = nullptr);
 	enum Tab { File = 0, Tag };
+	Tab currentTab() const;
 
 signals:
 	void currentTabChanged(Tab index);

@@ -81,7 +81,9 @@ void NewFileDialog::accept()
 
 	QProgressDialog progress(tr("Adding files..."), tr("Abort"), 0, filePathList.size(), this);
 	progress.setWindowModality(Qt::ApplicationModal);
-
+		
+	db->begin();
+	DBError error;
 	for (int i = 0; i < filePathList.size(); ++i)
 	{
 		QString& filePath = filePathList[i];
@@ -92,15 +94,20 @@ void NewFileDialog::accept()
 				: filePath
 		));
 		if (progress.wasCanceled())
-			return;
-		QSharedPointer<File> file;
-		if (DBError error = File::create(filePath, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
+			goto error;
+		File file;
+		if (error = File::create(filePath, m_ui->alias->text(), m_ui->comment->toPlainText(), m_ui->source->text(), &file))
 			continue;
-		for (const QSharedPointer<Tag>& tag : m_ui->tagSelect->tags())
-			file->addTag(tag);
+		if (error = file.setTags(m_ui->tagSelect->tags()))
+			continue;
 	}
 	progress.setValue(filePathList.size());
-	QDialog::accept();
+	db->commit();
+	return QDialog::accept();
+
+error:
+	db->rollback();
+	QMessageBox::warning(this, tr("Failed to add files"), error.message);
 }
 
 void NewFileDialog::walkDirectory(const QDir& dir, QDir::Filters filters, bool recursive, QStringList& paths)

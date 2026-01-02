@@ -13,7 +13,7 @@ class SettingsDialog : public QDialog
 
 public:
 	explicit SettingsDialog(QWidget* parent = nullptr, Qt::WindowFlags = { 0 });
-	~SettingsDialog();
+	virtual ~SettingsDialog() override;
 
 private slots:
 	void accept() override;

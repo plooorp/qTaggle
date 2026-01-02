@@ -1,49 +1,48 @@
 CREATE TABLE file(
-	id          INTEGER PRIMARY KEY AUTOINCREMENT,
-	path        TEXT    NOT NULL UNIQUE,
-	name        TEXT    NOT NULL,
-	alias       TEXT    NOT NULL,
-	state       INTEGER NOT NULL,
-	comment     TEXT    NOT NULL,
-	source      TEXT    NOT NULL,
-	sha1        BLOB    NOT NULL,
-	created     INTEGER NOT NULL DEFAULT (unixepoch()),
-	modified    INTEGER NOT NULL DEFAULT (unixepoch()),
-	checked     INTEGER NOT NULL DEFAULT (unixepoch())
+	id       INTEGER PRIMARY KEY AUTOINCREMENT,
+	name     TEXT    NOT NULL,
+	dir      TEXT    NOT NULL,
+	alias    TEXT    NOT NULL DEFAULT '',
+	state    INTEGER NOT NULL DEFAULT 0, -- Ok
+	comment  TEXT    NOT NULL DEFAULT '',
+	source   TEXT    NOT NULL DEFAULT '',
+	sha1     BLOB    NOT NULL,
+	created  INTEGER NOT NULL DEFAULT (unixepoch()),
+	modified INTEGER NOT NULL DEFAULT (unixepoch()),
+	checked  INTEGER NOT NULL DEFAULT (unixepoch()),
+
+	UNIQUE (name, dir)
 ) STRICT;
 
-CREATE INDEX file_path ON file(path);
-CREATE INDEX file_name ON file(name);
 CREATE INDEX file_alias ON file(alias);
 CREATE INDEX file_state ON file(state);
 CREATE INDEX file_created ON file(created);
 CREATE INDEX file_modified ON file(modified);
 CREATE INDEX file_checked ON file(checked);
 
-CREATE VIRTUAL TABLE file_search USING fts5(name, alias, path, comment, content='file', content_rowid='id');
+CREATE VIRTUAL TABLE file_search USING fts5(name, alias, dir, comment, content='file', content_rowid='id');
 CREATE TRIGGER file_ai AFTER INSERT ON file
 BEGIN
-	INSERT INTO file_search(rowid, name, alias, path, comment)
-	VALUES (NEW.id, NEW.name, NEW.alias, NEW.path, NEW.comment);
+	INSERT INTO file_search(rowid, name, alias, dir, comment)
+	VALUES (NEW.id, NEW.name, NEW.alias, NEW.dir, NEW.comment);
 END;
 CREATE TRIGGER file_ad AFTER DELETE ON file
 BEGIN
-	INSERT INTO file_search(file_search, rowid, name, alias, path, comment)
-	VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.path, OLD.comment);
+	INSERT INTO file_search(file_search, rowid, name, alias, dir, comment)
+	VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.dir, OLD.comment);
 END;
 CREATE TRIGGER file_au AFTER UPDATE ON file
 BEGIN
-	INSERT INTO file_search(file_search, rowid, name, alias, path, comment)
-	VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.path, OLD.comment);
-	INSERT INTO file_search(rowid, name, alias, path, comment)
-	VALUES (NEW.id, NEW.name, NEW.alias, NEW.path, NEW.comment);
+	INSERT INTO file_search(file_search, rowid, name, alias, dir, comment)
+	VALUES ('delete', OLD.id, OLD.name, OLD.alias, OLD.dir, OLD.comment);
+	INSERT INTO file_search(rowid, name, alias, dir, comment)
+	VALUES (NEW.id, NEW.name, NEW.alias, NEW.dir, NEW.comment);
 END;
 
 CREATE TABLE tag(
 	id          INTEGER PRIMARY KEY AUTOINCREMENT,
 	name        TEXT    NOT NULL UNIQUE,
-	description TEXT    NOT NULL,
-	urls        TEXT    NOT NULL,
+	description TEXT    NOT NULL DEFAULT '',
 	degree      INTEGER NOT NULL DEFAULT 0,
 	created     INTEGER NOT NULL DEFAULT (unixepoch()),
 	modified    INTEGER NOT NULL DEFAULT (unixepoch())
@@ -73,6 +72,14 @@ BEGIN
 	VALUES (NEW.id, NEW.name, NEW.description);
 END;
 
+CREATE TABLE tag_url(
+	tag_id INTEGER NOT NULL,
+	url    TEXT    NOT NULL,
+
+	PRIMARY KEY (tag_id, url),
+	FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
+) STRICT;
+
 CREATE TABLE file_tag(
 	file_id INTEGER NOT NULL,
 	tag_id  INTEGER NOT NULL,
@@ -82,30 +89,18 @@ CREATE TABLE file_tag(
 	FOREIGN KEY (tag_id)  REFERENCES tag(id)  ON DELETE CASCADE
 ) STRICT;
 
-CREATE TRIGGER update_file_modified
-AFTER UPDATE OF alias, comment, source, sha1digest ON file
-BEGIN
-	UPDATE file
-	SET    modified = unixepoch()
-	WHERE  id = NEW.id;
-END;
-
-CREATE TRIGGER update_tag_modified
-AFTER UPDATE OF name, description, urls ON tag
-BEGIN
-	UPDATE tag
-	SET    modified = unixepoch()
-	WHERE  id = NEW.id;
-END;
-
 CREATE TRIGGER file_tag_ai AFTER INSERT ON file_tag
 BEGIN
-	UPDATE file SET modified = unixepoch() WHERE file.id = NEW.file_id;
 	UPDATE tag SET degree = degree + 1 WHERE id = NEW.tag_id;
 END;
 
 CREATE TRIGGER file_tag_ad AFTER DELETE ON file_tag
 BEGIN
-	UPDATE file SET modified = unixepoch() WHERE file.id = OLD.file_id;
 	UPDATE tag SET degree = degree - 1 WHERE id = OLD.tag_id;
+END;
+
+CREATE TRIGGER file_tag_au AFTER UPDATE ON file_tag
+BEGIN
+	UPDATE tag SET degree = degree - 1 WHERE id = OLD.tag_id;
+	UPDATE tag SET degree = degree + 1 WHERE id = NEW.tag_id;
 END;

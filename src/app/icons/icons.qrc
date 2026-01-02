@@ -1,0 +1,14 @@
+<RCC>
+	<qresource prefix="/icons">
+		<file>file-checksumchanged.svg</file>
+		<file>file-error.svg</file>
+		<file>file-notfound.svg</file>
+		<file>file-ok.svg</file>
+    <file>menu.svg</file>
+		<file>page-first.svg</file>
+		<file>page-last.svg</file>
+		<file>page-next.svg</file>
+		<file>page-previous.svg</file>
+    <file>tag.svg</file>
+	</qresource>
+</RCC>

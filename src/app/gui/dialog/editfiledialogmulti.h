@@ -14,8 +14,8 @@ class EditFileDialogMulti : public QDialog
 	Q_OBJECT
 
 public:
-	explicit EditFileDialogMulti(const QList<QSharedPointer<File>>& files, QWidget* parent);
-	~EditFileDialogMulti();
+	explicit EditFileDialogMulti(const QList<File>& files, QWidget* parent);
+	virtual ~EditFileDialogMulti() override;
 
 private slots:
 	void accept() override;
@@ -23,5 +23,5 @@ private slots:
 
 private:
 	Ui::EditFileDialogMulti* m_ui;
-	QList<QSharedPointer<File>> m_files;
+	QList<File> m_files;
 };

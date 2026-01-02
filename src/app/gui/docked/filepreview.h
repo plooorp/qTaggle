@@ -15,10 +15,9 @@ public:
 	explicit FilePreview(FileList* fileList, QWidget* parent = nullptr);
 
 private slots:
-	void updatePreview();
+	void updatePreview(const QList<File>& selected);
 
 private:
-	QPointer<FileList> m_fileList;
 	QLabel* m_label;
 	QPixmap m_pixmap;
 	void resizeEvent(QResizeEvent* event) override;

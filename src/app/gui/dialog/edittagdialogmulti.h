@@ -13,13 +13,13 @@ class EditTagDialogMulti : public QDialog
 	Q_OBJECT
 
 public:
-	explicit EditTagDialogMulti(const QList<QSharedPointer<Tag>>& tags, QWidget* parent = nullptr);
-	~EditTagDialogMulti();
+	explicit EditTagDialogMulti(const QList<Tag>& tags, QWidget* parent = nullptr);
+	virtual ~EditTagDialogMulti() override;
 
 private slots:
 	void accept() override;
 
 private:
 	Ui::EditTagDialogMulti* m_ui;
-	QList<QSharedPointer<Tag>> m_tags;
+	QList<Tag> m_tags;
 };

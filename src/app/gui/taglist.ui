@@ -49,6 +49,19 @@
       <item>
        <widget class="QComboBox" name="sortOrder"/>
       </item>
+      <item>
+       <widget class="QToolButton" name="menuButton">
+        <property name="text">
+         <string>Menu</string>
+        </property>
+        <property name="popupMode">
+         <enum>QToolButton::ToolButtonPopupMode::InstantPopup</enum>
+        </property>
+        <property name="arrowType">
+         <enum>Qt::ArrowType::NoArrow</enum>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -158,6 +171,20 @@
    </property>
    <property name="text">
     <string>Delete</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionSortByRelevancy">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Use relevancy sorting</string>
+   </property>
+   <property name="toolTip">
+    <string>Use relevancy sorting when available.</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::NoRole</enum>

@@ -15,13 +15,13 @@ class EditTagDialog : public QDialog
 	Q_OBJECT
 
 public:
-	explicit EditTagDialog(const QSharedPointer<Tag>& tag, QWidget* parent = nullptr);
-	~EditTagDialog();
+	explicit EditTagDialog(const Tag& tag, QWidget* parent = nullptr);
+	virtual ~EditTagDialog() override;
 
 private slots:
 	void accept() override;
 
 private:
 	Ui::EditTagDialog* m_ui;
-	QSharedPointer<Tag> m_tag;
+	Tag m_tag;
 };

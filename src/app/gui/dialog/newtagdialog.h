@@ -13,7 +13,7 @@ class NewTagDialog : public QDialog
 
 public:
 	explicit NewTagDialog(QWidget *parent = nullptr, Qt::WindowFlags f = { 0 });
-	~NewTagDialog();
+	virtual ~NewTagDialog() override;
 
 private slots:
 	void accept() override;

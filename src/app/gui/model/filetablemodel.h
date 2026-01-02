@@ -9,24 +9,10 @@ class FileTableModel : public QAbstractTableModel
 
 public:
 	explicit FileTableModel(QObject* parent = nullptr);
-	int rowCount(const QModelIndex& parent) const override;
-	int columnCount(const QModelIndex& parent) const override;
-	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
-	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-	void addFile(const QSharedPointer<File>& file);
-	bool removeFile(const QSharedPointer<File>& file);
-	bool removeFile(int row);
-	QSharedPointer<File> fileAt(int row) const;
-	bool contains(const QSharedPointer<File>& file) const;
-	void clear();
-	void sort(int column, Qt::SortOrder order) override;
-
-private:
-	QList<QSharedPointer<File>> m_files;
 	enum Column
 	{
-		Name = 0,
-		ID,
+		ID = 0,
+		Name,
 		Path,
 		Comment,
 		Source,
@@ -35,4 +21,19 @@ private:
 		Modified,
 		Checked
 	};
+	static const QStringList columnString;
+	int rowCount(const QModelIndex& parent) const override;
+	int columnCount(const QModelIndex& parent) const override;
+	QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+	QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+	void addFile(const File& file);
+	bool removeFile(const File& file);
+	bool removeFile(int row);
+	File fileAt(int row) const;
+	bool contains(const File file) const;
+	void clear();
+	void sort(int column, Qt::SortOrder order) override;
+
+private:
+	QList<File> m_files;
 };

@@ -5,14 +5,15 @@
 #include "app/database.h"
 #include "app/tag.h"
 
-class FileTag
+struct FileTag
 {
 public:
-	FileTag(sqlite3_stmt* stmt);
-	QSharedPointer<Tag> tag() const;
+	FileTag();
+	FileTag(int64_t fileId, int64_t tagId);
+	int64_t fileId() const;
+	int64_t tagId() const;
 	QDateTime created() const;
-
 private:
-	QSharedPointer<Tag> m_tag;
-	QDateTime m_created;
+	int64_t m_fileId;
+	int64_t m_tagId;
 };

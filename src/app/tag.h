@@ -1,53 +1,53 @@
 #pragma once
 
-#include <QObject>
-#include <QString>
 #include <QDateTime>
-#include <QStringList>
-#include <QMap>
-#include <QList>
-#include <QSharedPointer>
-#include <QWeakPointer>
 
 #include "database.h"
 
-class Tag final : public QObject, public Record
+struct Tag
 {
-	Q_OBJECT
-
 public:
-	~Tag();
-	static DBError create(const QString& name, const QString& description = QString()
-		, const QStringList& urls = QStringList(), QSharedPointer<Tag>* out = nullptr);
-	static QSharedPointer<Tag> fromStmt(sqlite3_stmt* stmt);
-	static QSharedPointer<Tag> fromID(const int64_t id);
-	static QSharedPointer<Tag> fromName(const QString& name);
-	void fetch();
+	Tag();
+	Tag(int64_t id);
+	static DBError create(const QString& name, const QString& description = QString(), const QList<QString>& urls = QList<QString>(), Tag* out = nullptr);
+	static Tag fromName(const QString& name);
+	bool exists() const;
 	int64_t id() const;
 	QString name() const;
-	DBError setName(const QString& name);
 	QString description() const;
-	DBError setDescription(const QString& description);
 	QStringList urls() const;
-	DBError setURLs(const QStringList& urls);
 	int64_t degree() const;
 	QDateTime created() const;
 	QDateTime modified() const;
-	DBError remove();
-
-signals:
-	void updated();
-	void deleted();
+	DBError setName(const QString& name) const;
+	DBError setDescription(const QString& description) const;
+	DBError addURL(const QString& url) const;
+	DBError removeURL(const QString& url) const;
+	DBError setURLs(const QStringList& urls) const;
+	DBError remove() const;
+	bool operator==(const Tag& other) const
+	{
+		return this->id() == other.id();
+	}
+	bool operator!=(const Tag& other) const
+	{
+		return this->id() == other.id();
+	}
 
 private:
-	Tag(sqlite3_stmt* stmt);
-	static QMap<int64_t, QWeakPointer<Tag>> m_instances;
 	static inline QString normalizeName(const QString& name);
 	int64_t m_id;
-	QString m_name;
-	QString m_description;
-	QList<QString> m_urls;
-	int64_t m_degree;
-	QDateTime m_created;
-	QDateTime m_modified;
+	DBError updateModified() const;
 };
+
+namespace std
+{
+	template <>
+	struct hash<Tag>
+	{
+		std::size_t operator()(const Tag& tag) const noexcept
+		{
+			return tag.id();
+		}
+	};
+}

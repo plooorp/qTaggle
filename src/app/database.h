@@ -13,7 +13,7 @@ struct DBError : public Error
 public:
 	enum Code
 	{
-		Ok,
+		Ok = 0,
 		SQLiteError,
 		DatabaseClosed,
 		ValueError,
@@ -41,46 +41,42 @@ private:
 	static QStringList m_code_str;
 };
 
-class Record
-{
-public:
-	virtual ~Record() = default;
-	virtual void fetch() = 0;
-};
-
 class Database final : public QObject
 {
 	Q_OBJECT
 
 public:
 	static Database* instance();
-	~Database();
+	~Database() override;
 	sqlite3* con() const;
 	DBError open(const QString& path);
-	// clearLastOpened should be false only on application close
+	/**
+	 * @param clearLastOpened When true, prevents the current database from
+	 * being automatically opened on next application startup. Should only be
+	 * false on application close.
+	 */
 	DBError close(bool clearLastOpened = true);
 	bool isOpen();
 	DBError begin();
 	DBError commit();
 	DBError rollback();
-	bool inTransaction() const;
 	QString path() const;
 	QString configPath() const;
-	void addRecordToRollbackFetch(const QSharedPointer<Record>& record);
 
 signals:
 	void opened(const QString& path);
 	void closed();
 	void committed();
 	void rollbacked();
+	// debounced signal from sqlite_update_hook
+	void updated();
 
 private:
 	Database();
 	static Database* m_instance;
-	static int CURRENT_USER_VERSION;
+	static const int CURRENT_USER_VERSION;
+	QTimer* onUpdateTimer;
 	QString m_path;
 	sqlite3* m_con;
-	bool m_inTransaction;
-	QList<QSharedPointer<Record>> m_fetchOnRollback;
-	int migrate_0to1();
+	int migrate_0_to_1();
 };

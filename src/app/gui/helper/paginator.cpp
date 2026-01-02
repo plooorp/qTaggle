@@ -20,6 +20,11 @@ Paginator::Paginator(int currentPage, int minPage, int maxPage, QWidget* parent)
 	m_ui->spinBox->setMinimum(minPage + 1);
 	m_ui->spinBox->setMaximum(maxPage + 1);
 
+	m_ui->first->setIcon(QIcon(":/icons/page-first.svg"));
+	m_ui->prev->setIcon(QIcon(":/icons/page-previous.svg"));
+	m_ui->next->setIcon(QIcon(":/icons/page-next.svg"));
+	m_ui->last->setIcon(QIcon(":/icons/page-last.svg"));
+
 	connect(m_ui->first, &QToolButton::clicked, this, [this]() -> void { if (setPage(m_minPage)) emit pageChangedByUser(m_page); });
 	connect(m_ui->prev, &QToolButton::clicked, this, [this]() -> void { if (setPage(m_page - 1)) emit pageChangedByUser(m_page); });
 	connect(m_ui->next, &QToolButton::clicked, this, [this]() -> void { if (setPage(m_page + 1)) emit pageChangedByUser(m_page); });
@@ -125,4 +130,17 @@ inline void Paginator::updateButtons()
 		m_ui->next->setEnabled(true);
 		m_ui->last->setEnabled(true);
 	}
+}
+
+int Paginator::itemsPerPage() const
+{
+	return m_itemsPerPage;
+}
+
+void Paginator::setItemsPerPage(int items)
+{
+	if (items < 1)
+		return;
+	m_itemsPerPage = items;
+	updateLabel();
 }

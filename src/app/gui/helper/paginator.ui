@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>389</width>
     <height>44</height>
    </rect>
   </property>
@@ -31,18 +31,12 @@
      <property name="text">
       <string>First</string>
      </property>
-     <property name="icon">
-      <iconset theme="QIcon::ThemeIcon::MediaSeekBackward"/>
-     </property>
     </widget>
    </item>
    <item>
     <widget class="QToolButton" name="prev">
      <property name="text">
       <string>Previous</string>
-     </property>
-     <property name="icon">
-      <iconset theme="QIcon::ThemeIcon::MediaSkipBackward"/>
      </property>
     </widget>
    </item>
@@ -58,18 +52,12 @@
      <property name="text">
       <string>Next</string>
      </property>
-     <property name="icon">
-      <iconset theme="QIcon::ThemeIcon::MediaSkipForward"/>
-     </property>
     </widget>
    </item>
    <item>
     <widget class="QToolButton" name="last">
      <property name="text">
       <string>Last</string>
-     </property>
-     <property name="icon">
-      <iconset theme="QIcon::ThemeIcon::MediaSeekForward"/>
      </property>
     </widget>
    </item>

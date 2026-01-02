@@ -63,7 +63,7 @@ void TagCompleterModel::updateSuggestions(const QString& text)
 		SELECT name FROM tag_search
 		WHERE tag_search MATCH ?
 		ORDER BY bm25(tag_search, 10.0, 5.0)
-		LIMIT 8;
+		LIMIT 16;
 	)";
 	sqlite3_prepare_v2(db->con(), sql, -1, &stmt, nullptr);
 	QByteArray completion_bytes = prefix.toUtf8();

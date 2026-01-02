@@ -4,7 +4,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-EditFileDialogMulti::EditFileDialogMulti(const QList<QSharedPointer<File>>& files, QWidget* parent)
+EditFileDialogMulti::EditFileDialogMulti(const QList<File>& files, QWidget* parent)
 	: QDialog(parent)
 	, m_ui(new Ui::EditFileDialogMulti)
 	, m_files(files)
@@ -41,34 +41,34 @@ void EditFileDialogMulti::accept()
 	DBError error;
 	if (m_ui->directoryCheckBox->isChecked())
 	{
-		for (QSharedPointer<File>& file : m_files)
+		for (const File& file : m_files)
 		{
 			QString dir = m_ui->directory->text();
-			QString fileName = QFileInfo(file->path()).fileName();
-			if (error = file->setPath(QFileInfo(dir, fileName).absoluteFilePath()))
+			QString fileName = QFileInfo(file.path()).fileName();
+			if (error = file.setPath(QFileInfo(dir, fileName).absoluteFilePath()))
 				goto error;
-			file->check();
+			file.check();
 		}
 	}
 	if (m_ui->aliasCheckBox->isChecked())
-		for (QSharedPointer<File>& file : m_files)
-			if (error = file->setAlias(m_ui->alias->text()))
+		for (const File& file : m_files)
+			if (error = file.setAlias(m_ui->alias->text()))
 				goto error;
 	if (m_ui->sourceCheckBox->isChecked())
-		for (QSharedPointer<File>& file : m_files)
-			if (error = file->setSource(m_ui->source->text()))
+		for (const File& file : m_files)
+			if (error = file.setSource(m_ui->source->text()))
 				goto error;
 	if (m_ui->commentCheckBox->isChecked())
-		for (QSharedPointer<File>& file : m_files)
-			if (error = file->setComment(m_ui->comment->toPlainText()))
+		for (const File& file : m_files)
+			if (error = file.setComment(m_ui->comment->toPlainText()))
 				goto error;
-	for (const QSharedPointer<Tag> tag : m_ui->tagSelectRemove->tags())
-		for (QSharedPointer<File>& file : m_files)
-			if (error = file->removeTag(tag))
+	for (const Tag& tag : m_ui->tagSelectRemove->tags())
+		for (const File& file : m_files)
+			if (error = file.removeTag(tag))
 				goto error;
-	for (const QSharedPointer<Tag> tag : m_ui->tagSelectAdd->tags())
-		for (QSharedPointer<File>& file : m_files)
-			if (error = file->addTag(tag))
+	for (const Tag& tag : m_ui->tagSelectAdd->tags())
+		for (const File& file : m_files)
+			if (error = file.addTag(tag))
 				goto error;
 	db->commit();
 	return QDialog::accept();

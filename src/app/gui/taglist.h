@@ -15,19 +15,20 @@ class TagList : public QWidget
 
 public:
 	explicit TagList(QWidget* parent = nullptr);
-	~TagList();
-	QList<QSharedPointer<Tag>> selectedTags() const;
+	virtual ~TagList() override;
+	QList<Tag> selectedTags() const;
 	void editSelected();
 	void deleteSelected();
 
 signals:
-	void selectionChanged();
+	void selectionChanged(QList<Tag> selected);
 
 private slots:
 	void actionCreate_triggered();
 	void actionDelete_triggered();
 	void actionEdit_triggered();
 	void showContextMenu(const QPoint& pos);
+	void showHeaderContextMenu(const QPoint& pos);
 
 private:
 	Ui::TagList* m_ui;
