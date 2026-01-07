@@ -31,5 +31,5 @@ void NewTagDialog::accept()
 
 error:
 	db->rollback();
-	QMessageBox::warning(this, tr("Failed to create tag"), error.message);
+	QMessageBox::warning(this, tr("Failed to create tag"), error.message());
 }

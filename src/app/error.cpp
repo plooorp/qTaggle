@@ -1,29 +1,28 @@
 #include "error.h"
 
-Error::Error(const QString& type, const Error* parent)
-	: Error(type, Ok, parent)
+#include "app/globals.h"
+
+Error::Error(int code)
+	: code(code)
+	, baseMessage(u"No message provided"_s)
 {}
 
-Error::Error(const QString& type, int code, const Error* parent)
-	: Error(type, code, u"No message provided"_s, parent)
+Error::Error(int code, const QString& message)
+	: code(code)
+	, baseMessage(message)
 {}
 
-Error::Error(const QString& type, int code, const QString& message, const Error* parent)
-	: type(type)
-	, code(code)
-	, baseMessage(type + u": "_s + message)
+QString Error::message() const
 {
-	this->message = baseMessage;
-	if (parent)
-	{
-		parents = parent->parents;
-		parents.insert(0, *parent);
-		for (int i = 0; i < parents.size(); ++i)
-			this->message += u"\n    "_s + QString::number(i + 1) + u": "_s + parents.at(i).baseMessage;
-	}
+	return u"[%1] %2"_s.arg(name(), baseMessage);
+}
+
+QString Error::name() const
+{
+	return u"BaseError"_s;
 }
 
 Error::operator bool() const
 {
-	return code != 0;
+	return code != Ok;
 }

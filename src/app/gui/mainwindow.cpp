@@ -118,7 +118,7 @@ void MainWindow::actionDeleteSelected_triggered()
 
 void MainWindow::actionNewDatabase_triggered()
 {
-	QFileDialog dialog(this);
+	QFileDialog dialog;
 	dialog.setAcceptMode(QFileDialog::AcceptSave);
 	dialog.setFileMode(QFileDialog::AnyFile);
 	dialog.setNameFilter("SQLite database (*.sqlite *.sqlite3 *.db *.db3 *.s3db *.sl3)");
@@ -132,7 +132,7 @@ void MainWindow::actionNewDatabase_triggered()
 
 void MainWindow::actionOpenDatabase_triggered()
 {
-	QFileDialog dialog(this);
+	QFileDialog dialog;
 	dialog.setAcceptMode(QFileDialog::AcceptOpen);
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter("SQLite database (*.sqlite *.sqlite3 *.db *.db3 *.s3db *.sl3)");
@@ -224,7 +224,7 @@ void MainWindow::readSettings()
 	const QByteArray state = settings.value("GUI/MainWindow/state", QByteArray()).toByteArray();
 	if (!state.isEmpty())
 		restoreState(state);
-	int tabIndex = settings.value("GUI/MainWindow/currentIndex", 0).toInt();
+	int tabIndex = settings.value("GUI/MainWindow/tabIndex", 0).toInt();
 	m_ui.tabWidget->setCurrentIndex(tabIndex);
 
 	const QString lastOpened = settings.value("lastOpened", QString()).toString();
@@ -237,13 +237,13 @@ void MainWindow::writeSettings()
 	QSettings settings;
 	settings.setValue("GUI/MainWindow/geometry", saveGeometry());
 	settings.setValue("GUI/MainWindow/state", saveState());
-	settings.setValue("GUI/MainWindow/currentIndex", m_ui.tabWidget->currentIndex());
+	settings.setValue("GUI/MainWindow/tabIndex", m_ui.tabWidget->currentIndex());
 }
 
 void MainWindow::createDatabase(const QString& path)
 {
 	if (DBError error = db->open(path))
-		QMessageBox::warning(this, tr("Failed to create new database"), error.message);
+		QMessageBox::warning(this, tr("Failed to create new database"), error.message());
 	else
 	{
 		setWindowTitle(qApp->applicationName() + " - " + path);
@@ -254,7 +254,7 @@ void MainWindow::createDatabase(const QString& path)
 void MainWindow::openDatabase(const QString& path)
 {
 	if (DBError error = db->open(path))
-		QMessageBox::warning(this, tr("Failed to open existing database"), error.message);
+		QMessageBox::warning(this, tr("Failed to open existing database"), error.message());
 	else
 	{
 		setWindowTitle(qApp->applicationName() + " - " + path);

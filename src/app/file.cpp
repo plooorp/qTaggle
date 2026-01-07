@@ -1,6 +1,5 @@
 #include "file.h"
 
-#include <QApplication>
 #include <QCryptographicHash>
 #include <QFile>
 #include "app/globals.h"
@@ -17,7 +16,7 @@ bool File::exists() const
 {
 	if (m_id < 0)
 		return false;
-	if (!db->isOpen())
+	if (db->isClosed())
 		return false;
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT EXISTS(SELECT 1 FROM file WHERE id = ?);", -1, &stmt, nullptr);
@@ -31,7 +30,7 @@ bool File::exists() const
 
 DBError File::create(const QString& path, const QString& alias, const QString& comment, const QString& source, File* out)
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	QFileInfo fileInfo(path);
 	QByteArray sha1 = sha1Digest(path);
@@ -73,7 +72,7 @@ DBError File::create(const QString& path, const QString& alias, const QString& c
 
 DBError File::remove() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "DELETE FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -93,22 +92,22 @@ CheckError File::check() const
 	if (!QFileInfo::exists(path()))
 	{
 		if (DBError error = setState(FileMissing))
-			return CheckError(CheckError::Fail, u"Failed to update file state to FileMissing"_s, &error);
+			return CheckError(CheckError::Fail, u"Failed to update file state to FileMissing"_s, error);
 	}
 	else if (newChecksum.isEmpty())
 	{
 		if (DBError error = setState(Error))
-			return CheckError(CheckError::Fail, u"Failed to update state to Error"_s, &error);
+			return CheckError(CheckError::Fail, u"Failed to update state to Error"_s, error);
 	}
 	else if (newChecksum != oldChecksum)
 	{
 		if (DBError error = setState(ChecksumChanged))
-			return CheckError(CheckError::Fail, u"Failed to set state to ChecksumChanged"_s, &error);
+			return CheckError(CheckError::Fail, u"Failed to set state to ChecksumChanged"_s, error);
 		ok.sha1 = oldChecksum;
 	}
 	else
 		if (DBError error = setState(Ok))
-			return CheckError(CheckError::Fail, u"Failed to set state back to Ok"_s, &error);
+			return CheckError(CheckError::Fail, u"Failed to set state back to Ok"_s, error);
 	updateChecked();
 	return ok;
 
@@ -142,11 +141,15 @@ DBError File::addTag(const Tag& tag) const
 	sqlite3_bind_int64(stmt, 2, tag.id());
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
-	if (rc != SQLITE_DONE && rc != SQLITE_CONSTRAINT)
-		return DBError(rc);
-	if (DBError error = updateModified())
-		return error;
-	return DBError();
+	if (rc == SQLITE_DONE)
+	{
+		if (DBError error = updateModified())
+			return error;
+		return DBError();
+	}
+	if (rc == SQLITE_CONSTRAINT)
+		return DBError();
+	return DBError(rc);
 }
 
 DBError File::removeTag(const Tag& tag) const
@@ -210,7 +213,7 @@ DBError File::setPath(const QString& path) const
 
 DBError File::setState(File::State state) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET state = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -295,7 +298,7 @@ QString File::path() const
 
 QString File::name() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT name FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -309,7 +312,7 @@ QString File::name() const
 
 QString File::dir() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT dir FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -323,7 +326,7 @@ QString File::dir() const
 
 QString File::alias() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT alias FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -337,7 +340,7 @@ QString File::alias() const
 
 File::State File::state() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return Ok;
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT state FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -351,7 +354,7 @@ File::State File::state() const
 
 QString File::comment() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT comment FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -365,7 +368,7 @@ QString File::comment() const
 
 QString File::source() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT source FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -379,7 +382,7 @@ QString File::source() const
 
 QByteArray File::sha1() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QByteArray();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT sha1 FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -393,7 +396,7 @@ QByteArray File::sha1() const
 
 QDateTime File::created() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT created FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -407,7 +410,7 @@ QDateTime File::created() const
 
 QDateTime File::modified() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT modified FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -421,7 +424,7 @@ QDateTime File::modified() const
 
 DBError File::updateModified() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE file SET modified = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -436,7 +439,7 @@ DBError File::updateModified() const
 
 QDateTime File::checked() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT checked FROM file WHERE id = ?;", -1, &stmt, nullptr);
@@ -450,7 +453,7 @@ QDateTime File::checked() const
 
 QList<FileTag> File::tags() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QList<FileTag>();
 	sqlite3_stmt* stmt;
 	const char* sql = R"(
@@ -488,7 +491,7 @@ QByteArray File::sha1Digest(const QString& path)
 
 int64_t File::countByState(File::State state)
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return 0;
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT COUNT(*) FROM file WHERE state = ?;", -1, &stmt, nullptr);
@@ -500,7 +503,7 @@ int64_t File::countByState(File::State state)
 	return count;
 }
 
-const QStringList File::stateString =
+const QStringList File::stateString
 {
 	"Ok",
 	"Error",

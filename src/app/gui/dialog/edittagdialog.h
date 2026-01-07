@@ -2,7 +2,6 @@
 
 #include <QDialog>
 #include <QList>
-#include <QSharedPointer>
 #include "app/tag.h"
 
 namespace Ui

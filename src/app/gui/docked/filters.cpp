@@ -59,7 +59,7 @@ Filters::~Filters()
 
 void Filters::populate()
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return;
 	
 	// update state counters

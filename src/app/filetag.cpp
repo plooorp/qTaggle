@@ -22,7 +22,7 @@ int64_t FileTag::tagId() const
 
 QDateTime FileTag::created() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT created FROM file_tag WHERE file_id = ? AND tag_id = ?;", -1, &stmt, nullptr);

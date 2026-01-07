@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QDateTime>
-#include <QSharedPointer>
 #include "app/database.h"
 #include "app/tag.h"
 

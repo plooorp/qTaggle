@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QObject>
-#include <QSharedPointer>
 #include "sqlite3.h"
 #include "app/error.h"
 #include "app/globals.h"
@@ -20,25 +19,25 @@ public:
 		FileIOError,
 		UnsupportedVersion
 	};
-	explicit DBError(const Error* parent = nullptr)
-		: Error(u"DatabaseError"_s, Ok, m_code_str[Ok], parent)
+	explicit DBError(Code code = Ok)
+		: Error(code, CODE_STRING[code])
 		, sqlite_code(-1)
 	{}
-	explicit DBError(Code code, Error* parent = nullptr)
-		: Error(u"DatabaseError"_s, code, m_code_str[code], parent)
+	explicit DBError(Code code, const QString& message)
+		: Error(code, message)
 		, sqlite_code(-1)
 	{}
-	explicit DBError(Code code, const QString& message, const Error* parent = nullptr)
-		: Error(u"DatabaseError"_s, code, message, parent)
-		, sqlite_code(-1)
-	{}
-	explicit DBError(int sqlite_code, const Error* parent = nullptr)
-		: Error(u"DatabaseError"_s, SQLiteError, sqlite3_errstr(sqlite_code), parent)
+	explicit DBError(int sqlite_code)
+		: Error(SQLiteError, sqlite3_errstr(sqlite_code))
 		, sqlite_code(sqlite_code)
 	{}
+	QString name() const override
+	{
+		return u"DatabaseError"_s;
+	}
 	int sqlite_code;
 private:
-	static QStringList m_code_str;
+	const static QStringList CODE_STRING;
 };
 
 class Database final : public QObject
@@ -56,7 +55,8 @@ public:
 	 * false on application close.
 	 */
 	DBError close(bool clearLastOpened = true);
-	bool isOpen();
+	bool isOpen() const;
+	bool isClosed() const;
 	DBError begin();
 	DBError commit();
 	DBError rollback();
@@ -72,10 +72,11 @@ signals:
 	void updated();
 
 private:
-	Database();
-	static Database* m_instance;
+	explicit Database(QObject* parent = nullptr);
+	static Database* s_instance;
 	static const int CURRENT_USER_VERSION;
-	QTimer* onUpdateTimer;
+	static const int MAX_RECENTLY_OPENED_HISTORY_SIZE;
+	QTimer* m_onUpdateTimer;
 	QString m_path;
 	sqlite3* m_con;
 	int migrate_0_to_1();

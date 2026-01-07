@@ -1,8 +1,6 @@
 #pragma once
 
-#include <QWidget>
-#include <QStringList>
-#include <QtWidgets/QPlainTextEdit>
+#include <QPlainTextEdit>
 
 class PlainTextListEdit : public QPlainTextEdit
 {
@@ -10,6 +8,11 @@ class PlainTextListEdit : public QPlainTextEdit
 
 public:
 	explicit PlainTextListEdit(QWidget* parent = nullptr);
-	QStringList values() const;
+	enum Options
+	{
+		SkipEmptyLines = 0x1,
+		TrimLines = 0x2
+	};
+	QStringList values(int o = TrimLines | SkipEmptyLines) const;
 	void setValues(const QStringList& values);
 };

@@ -12,15 +12,30 @@
 
 struct CheckError : public Error
 {
-	explicit CheckError(const Error* parent = nullptr)
-		: Error(u"CheckError"_s, Ok, parent)
+	enum Code
+	{
+		Ok = 0,
+		Fail,
+		DatabaseError
+	};
+	explicit CheckError(Code code = Ok)
+		: Error(code)
 	{}
-	explicit CheckError(Code code, const Error* parent = nullptr)
-		: Error(u"CheckError"_s, code, parent)
+	explicit CheckError(Code code, const QString& message, const DBError& dbError)
+		: Error(code, message)
+		, dbError(dbError)
 	{}
-	explicit CheckError(Code code, const QString& message, const Error* parent = nullptr)
-		: Error(u"CheckError"_s, code, message, parent)
-	{}
+	QString message() const override
+	{
+		if (dbError)
+			return dbError.message();
+		return Error::message();
+	}
+	QString name() const override
+	{
+		return u"CheckError"_s;
+	}
+	DBError dbError;
 	// holds the file's new checksum when a mismatch is detected
 	QByteArray sha1;
 };

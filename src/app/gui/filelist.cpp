@@ -62,8 +62,8 @@ FileList::FileList(QWidget* parent)
 
 	connect(db, &Database::opened, this, &FileList::populate);
 	connect(db, &Database::updated, this, &FileList::populate);
-	connect(m_ui->nameLineEdit, &QLineEdit::textEdited, this, &FileList::populate);
-	connect(m_ui->tagLineEdit, &QLineEdit::textEdited, this, &FileList::populate);
+	connect(m_ui->nameLineEdit, &QLineEdit::textChanged, this, &FileList::populate);
+	connect(m_ui->tagLineEdit, &QLineEdit::textChanged, this, &FileList::populate);
 	connect(m_ui->paginator, &Paginator::pageChangedByUser, this, &FileList::populate);
 	connect(m_ui->resultsPerPage, &QSpinBox::editingFinished, this, &FileList::populate);
 	connect(m_ui->sortBy, &QComboBox::currentIndexChanged, this, &FileList::populate);
@@ -187,7 +187,7 @@ void FileList::populate()
 	if (query.isEmpty())
 	{
 		sql = uR"(
-			SELECT
+			SELECT DISTINCT
 				file.id,
 				CASE
 					WHEN LENGTH(file.alias) > 0 THEN file.alias
@@ -213,7 +213,7 @@ void FileList::populate()
 			sortOrder = "ASC";
 		}
 		sql = uR"(
-			SELECT
+			SELECT DISTINCT
 				file.id,
 				CASE
 					WHEN LENGTH(file.alias) > 0 THEN file.alias

@@ -1,24 +1,24 @@
 #include "database.h"
 
-#include <QSettings>
-#include <QFileInfo>
 #include <QDir>
+#include <QFileInfo>
+#include <QSettings>
 #include <QTimer>
 
-Database::Database()
-	: QObject(nullptr)
+Database::Database(QObject* parent)
+	: QObject(parent)
 	, m_con(nullptr)
 {
-	onUpdateTimer = new QTimer(this);
-	onUpdateTimer->setSingleShot(true);
-	onUpdateTimer->setInterval(250);
-	connect(onUpdateTimer, &QTimer::timeout, this, [this]() -> void { emit updated(); });
+	m_onUpdateTimer = new QTimer(this);
+	m_onUpdateTimer->setSingleShot(true);
+	m_onUpdateTimer->setInterval(250);
+	connect(m_onUpdateTimer, &QTimer::timeout, this, [this]() -> void { emit updated(); });
 }
 
 Database::~Database()
 {
 	close(false);
-	m_instance = nullptr;
+	s_instance = nullptr;
 }
 
 sqlite3* Database::con() const
@@ -28,9 +28,9 @@ sqlite3* Database::con() const
 
 Database* Database::instance()
 {
-	if (m_instance == nullptr)
-		m_instance = new Database();
-	return m_instance;
+	if (s_instance == nullptr)
+		s_instance = new Database();
+	return s_instance;
 }
 
 DBError Database::open(const QString& path)
@@ -47,6 +47,7 @@ DBError Database::open(const QString& path)
 	m_path = path;
 	sqlite3_exec(m_con, "PRAGMA encoding = 'UTF-8';", 0, 0, 0);
 	sqlite3_exec(m_con, "PRAGMA foreign_keys = '1';", 0, 0, 0);
+	sqlite3_exec(m_con, "PRAGMA journal_mode = 'WAL';", 0, 0, 0);
 
 	// update database schema if need be
 	sqlite3_stmt* stmt;
@@ -86,7 +87,6 @@ DBError Database::open(const QString& path)
 	{
 		// add new history entry
 		recentlyOpened.insert(0, path);
-		const int MAX_RECENTLY_OPENED_HISTORY_SIZE = 6;
 		if (recentlyOpened.size() > MAX_RECENTLY_OPENED_HISTORY_SIZE)
 			recentlyOpened.resize(MAX_RECENTLY_OPENED_HISTORY_SIZE);
 		settings.setValue("GUI/MainWindow/recentlyOpened", recentlyOpened);
@@ -102,7 +102,7 @@ DBError Database::open(const QString& path)
 	emit opened(path);
 	sqlite3_update_hook(m_con, [](void* arg, int operation, const char* dbName, const char* tableName, sqlite3_int64 rowid) -> void
 		{
-			db->onUpdateTimer->start();
+			db->m_onUpdateTimer->start();
 		}, nullptr);
 	//sqlite3_trace_v2(m_con, SQLITE_TRACE_STMT, [](unsigned int mask, void* context, void* p, void* x) -> int
 	//	{
@@ -133,21 +133,26 @@ DBError Database::close(bool clearLastOpened)
 	return DBError(rc);
 }
 
-bool Database::isOpen()
+bool Database::isOpen() const
 {
 	return m_con;
 }
 
+bool Database::isClosed() const
+{
+	return !m_con;
+}
+
 DBError Database::begin()
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	return DBError(sqlite3_exec(m_con, "BEGIN TRANSACTION;", 0, 0, 0));
 }
 
 DBError Database::commit()
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	int rc = sqlite3_exec(m_con, "COMMIT TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
@@ -160,7 +165,7 @@ DBError Database::commit()
 
 DBError Database::rollback()
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	int rc = sqlite3_exec(m_con, "ROLLBACK TRANSACTION;", 0, 0, 0);
 	if (rc == SQLITE_OK)
@@ -301,7 +306,7 @@ int Database::migrate_0_to_1()
 	return rc;
 }
 
-QStringList DBError::m_code_str =
+const QStringList DBError::CODE_STRING
 {
 	u"Ok"_s,
 	u""_s, // sqlite3_errstr() is used instead
@@ -310,5 +315,7 @@ QStringList DBError::m_code_str =
 	u"File read/write error"_s,
 	u"Unsupported database version"_s
 };
-Database* Database::m_instance = nullptr;
-int const Database::CURRENT_USER_VERSION = 1;
+
+Database* Database::s_instance = nullptr;
+const int Database::CURRENT_USER_VERSION = 1;
+const int Database::MAX_RECENTLY_OPENED_HISTORY_SIZE = 6;

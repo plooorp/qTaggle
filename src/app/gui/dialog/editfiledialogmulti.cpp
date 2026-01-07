@@ -76,7 +76,7 @@ void EditFileDialogMulti::accept()
 error:
 	db->rollback();
 	QMessageBox::warning(this, qApp->applicationName()
-		, tr("Failed to update files: ") + error.message);
+		, tr("Failed to update files: ") + error.message());
 }
 
 void EditFileDialogMulti::openFileDialog()

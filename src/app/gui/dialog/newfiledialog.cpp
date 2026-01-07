@@ -107,7 +107,7 @@ void NewFileDialog::accept()
 
 error:
 	db->rollback();
-	QMessageBox::warning(this, tr("Failed to add files"), error.message);
+	QMessageBox::warning(this, tr("Failed to add files"), error.message());
 }
 
 void NewFileDialog::walkDirectory(const QDir& dir, QDir::Filters filters, bool recursive, QStringList& paths)

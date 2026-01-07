@@ -13,7 +13,7 @@ Tag::Tag(int64_t id)
 
 Tag Tag::fromName(const QString& name)
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return Tag();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT id FROM tag WHERE name = ?;", -1, &stmt, nullptr);
@@ -30,7 +30,7 @@ bool Tag::exists() const
 {
 	if (m_id < 0)
 		return false;
-	if (!db->isOpen())
+	if (db->isClosed())
 		return false;
 	sqlite3_stmt* stmt;
 	const char* sql = "SELECT EXISTS(SELECT 1 FROM tag WHERE id = ?);";
@@ -45,7 +45,7 @@ bool Tag::exists() const
 
 DBError Tag::create(const QString& name, const QString& description, const QList<QString>& urls, Tag* out)
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 
 	QString name_norm = normalizeName(name);
@@ -83,7 +83,7 @@ DBError Tag::create(const QString& name, const QString& description, const QList
 
 DBError Tag::remove() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "DELETE FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -97,7 +97,7 @@ DBError Tag::remove() const
 
 DBError Tag::setName(const QString& name) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	QString name_norm = normalizeName(name);
 	if (name.isEmpty())
@@ -118,7 +118,7 @@ DBError Tag::setName(const QString& name) const
 
 DBError Tag::setDescription(const QString& description) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE tag SET description = ? WHERE id = ?;", -1, &stmt, nullptr);
@@ -136,7 +136,7 @@ DBError Tag::setDescription(const QString& description) const
 
 DBError Tag::setURLs(const QStringList& urls) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	QList<QString> oldURLsList = this->urls();
 	QSet<QString> oldURLs(oldURLsList.begin(), oldURLsList.end());
@@ -156,7 +156,7 @@ DBError Tag::setURLs(const QStringList& urls) const
 
 DBError Tag::addURL(const QString& url) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	QUrl qurl(url, QUrl::TolerantMode);
 	if (!qurl.isValid())
@@ -168,16 +168,20 @@ DBError Tag::addURL(const QString& url) const
 	sqlite3_bind_text(stmt, 2, url_utf8, -1, SQLITE_STATIC);
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
-	if (rc != SQLITE_DONE)
-		return DBError(rc);
+	if (rc == SQLITE_DONE)
+	{
 	if (DBError error = updateModified())
 		return error;
 	return DBError();
 }
+	if (rc == SQLITE_CONSTRAINT)
+		return DBError();
+	return DBError(rc);
+}
 
 DBError Tag::removeURL(const QString& url) const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	QByteArray url_utf8 = url.toUtf8();
@@ -200,7 +204,7 @@ int64_t Tag::id() const
 
 QString Tag::name() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT name FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -214,7 +218,7 @@ QString Tag::name() const
 
 QString Tag::description() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QString();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT description FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -228,7 +232,7 @@ QString Tag::description() const
 
 QStringList Tag::urls() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QStringList();
 	sqlite3_stmt* stmt;
 	const char* sql = "SELECT url FROM tag_url WHERE tag_id = ? ORDER BY url ASC;";
@@ -243,7 +247,7 @@ QStringList Tag::urls() const
 
 int64_t Tag::degree() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return 0;
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT degree FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -257,7 +261,7 @@ int64_t Tag::degree() const
 
 //int64_t Tag::degree() const
 //{
-//	if (!db->isOpen())
+//	if (db->isClosed())
 //		return 0;
 //	sqlite3_stmt* stmt;
 //	const char* sql = R"(
@@ -275,7 +279,7 @@ int64_t Tag::degree() const
 
 QDateTime Tag::created() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT created FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -289,7 +293,7 @@ QDateTime Tag::created() const
 
 QDateTime Tag::modified() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return QDateTime();
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "SELECT modified FROM tag WHERE id = ?;", -1, &stmt, nullptr);
@@ -303,7 +307,7 @@ QDateTime Tag::modified() const
 
 DBError Tag::updateModified() const
 {
-	if (!db->isOpen())
+	if (db->isClosed())
 		return DBError(DBError::DatabaseClosed);
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db->con(), "UPDATE tag SET modified = ? WHERE id = ?;", -1, &stmt, nullptr);
